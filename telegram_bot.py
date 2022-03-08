@@ -1,9 +1,12 @@
 import logging
 import os
+import random
 
 import telegram
 from dotenv import load_dotenv
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+
+from questions import collect_quiz_pairs
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
@@ -20,6 +23,13 @@ def start(bot, update):
         text="Привет! Я - бот для викторин!",
         reply_markup=reply_markup,
     )
+
+
+def send_question(bot, update):
+    if update.message.text == "Новый вопрос":
+        quiz_pairs = collect_quiz_pairs("quiz-questions/1vs1200.txt")
+        random_question = random.choice(list(quiz_pairs.keys()))
+        update.message.reply_text(random_question)
 
 
 def help(bot, update):
@@ -42,6 +52,7 @@ def main():
 
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", help))
+    dp.add_handler(MessageHandler(Filters.text, send_question))
 
     dp.add_error_handler(error)
 
