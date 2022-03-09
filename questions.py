@@ -19,9 +19,11 @@ def collect_quiz_pairs(filename: str) -> dict:
 
     for line in text.split("\n\n"):
         if line.strip().startswith("Вопрос"):
-            questions.append(line)
+            _, question_text = line.split(sep=":", maxsplit=1)
+            questions.append(question_text.strip())
         elif line.strip().startswith("Ответ"):
-            answers.append(line)
+            _, answer_text = line.split(sep=":", maxsplit=1)
+            answers.append(answer_text.strip())
 
     for question, answer in zip(questions, answers):
         quiz_pairs[question] = answer
