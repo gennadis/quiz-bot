@@ -1,3 +1,15 @@
+import os
+
+import redis
+from dotenv import load_dotenv
+
+load_dotenv()
+DB_URL, DB_PORT = os.getenv("DB_ADDRESS").rsplit(":")
+DB_NAME = os.getenv("DB_NAME")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+REDIS_CONN = redis.Redis(host=DB_URL, port=DB_PORT, db=DB_NAME, password=DB_PASSWORD)
+
+
 def collect_quiz_pairs(filename: str) -> dict:
     with open(filename, "r", encoding="KOI8-R") as file:
         text = file.read()

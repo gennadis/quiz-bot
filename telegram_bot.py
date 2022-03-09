@@ -6,7 +6,7 @@ import telegram
 from dotenv import load_dotenv
 from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
 
-from questions import collect_quiz_pairs
+from questions import collect_quiz_pairs, REDIS_CONN
 
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
@@ -30,6 +30,10 @@ def send_question(bot, update):
         quiz_pairs = collect_quiz_pairs("quiz-questions/1vs1200.txt")
         random_question = random.choice(list(quiz_pairs.keys()))
         update.message.reply_text(random_question)
+
+        REDIS_CONN.set(name=update.message.chat_id, value=random_question)
+        question = REDIS_CONN.get(name=update.message.chat_id)
+        print(question.decode("utf-8"))
 
 
 def help(bot, update):
