@@ -29,6 +29,7 @@ markup = telegram.ReplyKeyboardMarkup(custom_keyboard)
 class State(Enum):
     NEW_QUESTION = auto()
     SOLUTION_ATTEMPT = auto()
+    SURRENDER = auto()
 
 
 def start(bot, update):
@@ -53,8 +54,6 @@ def handle_solution_attempt(bot, update):
     full_answer = quiz_pairs[question.decode("UTF-8")]
     answer, explanation = full_answer.split(".", maxsplit=1)
 
-    update.message.reply_text(answer)
-
     if update.message.text.lower() == answer.lower():
         update.message.reply_text(
             "Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»"
@@ -62,8 +61,18 @@ def handle_solution_attempt(bot, update):
         return State.NEW_QUESTION
     else:
         update.message.reply_text("Неправильно… Попробуешь ещё раз?")
+        return State.SURRENDER
 
-        return None
+
+def handle_surrender(bot, update):
+    question = REDIS_CONN.get(name=update.message.chat_id)
+    quiz_pairs = collect_quiz_pairs("quiz-questions/1vs1200.txt")
+    full_answer = quiz_pairs[question.decode("UTF-8")]
+    answer, explanation = full_answer.split(".", maxsplit=1)
+
+    update.message.reply_text(answer)
+
+    return State.NEW_QUESTION
 
 
 def help(bot, update):
@@ -88,6 +97,7 @@ def main():
             State.NEW_QUESTION: [
                 RegexHandler("Новый вопрос", handle_new_question_request)
             ],
+            State.SURRENDER: [RegexHandler("Сдаться", handle_surrender)],
             State.SOLUTION_ATTEMPT: [
                 MessageHandler(Filters.text, handle_solution_attempt)
             ],
