@@ -40,9 +40,13 @@ def check_answer(bot, update):
     answer, explanation = full_answer.split(".")
 
     if update.message.text.lower() == answer.lower():
-        update.message.reply_text("Правильно!")
+        update.message.reply_text(
+            "Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»"
+        )
+        send_question(bot, update)
+
     else:
-        update.message.reply_text("Неправильно!")
+        update.message.reply_text("Неправильно… Попробуешь ещё раз?")
 
 
 def help(bot, update):
