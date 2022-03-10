@@ -26,14 +26,11 @@ def start(bot, update):
 
 
 def send_question(bot, update):
-    if update.message.text == "Новый вопрос":
-        quiz_pairs = collect_quiz_pairs("quiz-questions/1vs1200.txt")
-        random_question = random.choice(list(quiz_pairs.keys()))
-        update.message.reply_text(random_question)
+    quiz_pairs = collect_quiz_pairs("quiz-questions/1vs1200.txt")
+    question, answer = random.choice(list(quiz_pairs.items()))
 
-        REDIS_CONN.set(name=update.message.chat_id, value=random_question)
-        question = REDIS_CONN.get(name=update.message.chat_id)
-        print(question.decode("utf-8"))
+    REDIS_CONN.set(name=update.message.chat_id, value=question)
+    update.message.reply_text(question)
 
 
 def help(bot, update):
@@ -56,7 +53,8 @@ def main():
 
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", help))
-    dp.add_handler(MessageHandler(Filters.text, send_question))
+    dp.add_handler(MessageHandler(Filters.regex("Новый вопрос"), send_question))
+    dp.add_handler(MessageHandler(Filters.text, help))
 
     dp.add_error_handler(error)
 
