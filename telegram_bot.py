@@ -4,7 +4,14 @@ import random
 
 import telegram
 from dotenv import load_dotenv
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from telegram.ext import (
+    Updater,
+    CommandHandler,
+    MessageHandler,
+    Filters,
+    ConversationHandler,
+    RegexHandler,
+)
 
 from questions import collect_quiz_pairs, REDIS_CONN
 
@@ -14,39 +21,45 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
+NEW_QUESTION, SOLUTION_ATTEMPT = range(2)
+
+custom_keyboard = [["Новый вопрос", "Сдаться"], ["Мой счет"]]
+markup = telegram.ReplyKeyboardMarkup(custom_keyboard)
+
 
 def start(bot, update):
-    custom_keyboard = [["Новый вопрос", "Сдаться"], ["Мой счет"]]
-    reply_markup = telegram.ReplyKeyboardMarkup(custom_keyboard)
-    bot.send_message(
-        chat_id=update.message.chat_id,
-        text="Привет! Я - бот для викторин!",
-        reply_markup=reply_markup,
-    )
+    update.message.reply_text("Привет! Я - бот для викторин!", reply_markup=markup)
+
+    return NEW_QUESTION
 
 
-def send_question(bot, update):
+def handle_new_question_request(bot, update):
     quiz_pairs = collect_quiz_pairs("quiz-questions/1vs1200.txt")
     question, answer = random.choice(list(quiz_pairs.items()))
 
     REDIS_CONN.set(name=update.message.chat_id, value=question)
     update.message.reply_text(question)
 
+    return SOLUTION_ATTEMPT
 
-def check_answer(bot, update):
+
+def handle_solution_attempt(bot, update):
     question = REDIS_CONN.get(name=update.message.chat_id)
     quiz_pairs = collect_quiz_pairs("quiz-questions/1vs1200.txt")
     full_answer = quiz_pairs[question.decode("UTF-8")]
-    answer, explanation = full_answer.split(".")
+    answer, explanation = full_answer.split(".", maxsplit=1)
+
+    update.message.reply_text(answer)
 
     if update.message.text.lower() == answer.lower():
         update.message.reply_text(
             "Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»"
         )
-        send_question(bot, update)
-
+        return NEW_QUESTION
     else:
         update.message.reply_text("Неправильно… Попробуешь ещё раз?")
+
+        return None
 
 
 def help(bot, update):
@@ -65,12 +78,17 @@ def main():
 
     updater = Updater(token=tg_token)
 
-    dp = updater.dispatcher
+    converstaion_handler = ConversationHandler(
+        entry_points=[CommandHandler("start", start)],
+        states={
+            NEW_QUESTION: [RegexHandler("Новый вопрос", handle_new_question_request)],
+            SOLUTION_ATTEMPT: [MessageHandler(Filters.text, handle_solution_attempt)],
+        },
+        fallbacks=[],
+    )
 
-    dp.add_handler(CommandHandler("start", start))
-    dp.add_handler(CommandHandler("help", help))
-    dp.add_handler(MessageHandler(Filters.regex("Новый вопрос"), send_question))
-    dp.add_handler(MessageHandler(Filters.text, check_answer))
+    dp = updater.dispatcher
+    dp.add_handler(converstaion_handler)
 
     dp.add_error_handler(error)
 
