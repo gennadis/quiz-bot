@@ -33,6 +33,18 @@ def send_question(bot, update):
     update.message.reply_text(question)
 
 
+def check_answer(bot, update):
+    question = REDIS_CONN.get(name=update.message.chat_id)
+    quiz_pairs = collect_quiz_pairs("quiz-questions/1vs1200.txt")
+    full_answer = quiz_pairs[question.decode("UTF-8")]
+    answer, explanation = full_answer.split(".")
+
+    if update.message.text.lower() == answer.lower():
+        update.message.reply_text("Правильно!")
+    else:
+        update.message.reply_text("Неправильно!")
+
+
 def help(bot, update):
     """Send a message when the command /help is issued."""
     update.message.reply_text("Help!")
@@ -54,7 +66,7 @@ def main():
     dp.add_handler(CommandHandler("start", start))
     dp.add_handler(CommandHandler("help", help))
     dp.add_handler(MessageHandler(Filters.regex("Новый вопрос"), send_question))
-    dp.add_handler(MessageHandler(Filters.text, help))
+    dp.add_handler(MessageHandler(Filters.text, check_answer))
 
     dp.add_error_handler(error)
 
