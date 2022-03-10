@@ -1,6 +1,8 @@
 import logging
 import os
 import random
+from enum import Enum, auto
+
 
 import telegram
 from dotenv import load_dotenv
@@ -18,19 +20,21 @@ from questions import collect_quiz_pairs, REDIS_CONN
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
-
 logger = logging.getLogger(__name__)
-
-NEW_QUESTION, SOLUTION_ATTEMPT = range(2)
 
 custom_keyboard = [["Новый вопрос", "Сдаться"], ["Мой счет"]]
 markup = telegram.ReplyKeyboardMarkup(custom_keyboard)
 
 
+class State(Enum):
+    NEW_QUESTION = auto()
+    SOLUTION_ATTEMPT = auto()
+
+
 def start(bot, update):
     update.message.reply_text("Привет! Я - бот для викторин!", reply_markup=markup)
 
-    return NEW_QUESTION
+    return State.NEW_QUESTION
 
 
 def handle_new_question_request(bot, update):
@@ -40,7 +44,7 @@ def handle_new_question_request(bot, update):
     REDIS_CONN.set(name=update.message.chat_id, value=question)
     update.message.reply_text(question)
 
-    return SOLUTION_ATTEMPT
+    return State.SOLUTION_ATTEMPT
 
 
 def handle_solution_attempt(bot, update):
@@ -55,7 +59,7 @@ def handle_solution_attempt(bot, update):
         update.message.reply_text(
             "Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»"
         )
-        return NEW_QUESTION
+        return State.NEW_QUESTION
     else:
         update.message.reply_text("Неправильно… Попробуешь ещё раз?")
 
@@ -81,8 +85,12 @@ def main():
     converstaion_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
         states={
-            NEW_QUESTION: [RegexHandler("Новый вопрос", handle_new_question_request)],
-            SOLUTION_ATTEMPT: [MessageHandler(Filters.text, handle_solution_attempt)],
+            State.NEW_QUESTION: [
+                RegexHandler("Новый вопрос", handle_new_question_request)
+            ],
+            State.SOLUTION_ATTEMPT: [
+                MessageHandler(Filters.text, handle_solution_attempt)
+            ],
         },
         fallbacks=[],
     )
