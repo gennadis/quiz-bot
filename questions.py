@@ -1,5 +1,6 @@
-import os
 import json
+import os
+import random
 
 import redis
 from dotenv import load_dotenv
@@ -45,6 +46,14 @@ def collect_quiz_items(folderpath: str) -> dict:
         quiz_items.update(parsed_quiz_items)
 
     return quiz_items
+
+
+def get_random_quiz(filepath: str) -> tuple[str, str]:
+    with open(filepath, "r") as file:
+        quiz_items = json.load(file)
+    question, answer = random.choice(list(quiz_items.items()))
+
+    return question, answer
 
 
 if __name__ == "__main__":
