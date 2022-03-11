@@ -1,4 +1,5 @@
 import os
+import json
 
 import redis
 from dotenv import load_dotenv
@@ -48,4 +49,6 @@ def collect_quiz_items(folderpath: str) -> dict:
 
 if __name__ == "__main__":
     quiz_items = collect_quiz_items("quiz-questions")
-    print(quiz_items)
+    quiz_items_filepath = os.path.join("quiz-questions", "quiz_items.json")
+    with open(quiz_items_filepath, "w") as file:
+        json.dump(obj=quiz_items, fp=file, ensure_ascii=False, indent=2)
