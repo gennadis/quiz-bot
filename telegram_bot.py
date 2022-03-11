@@ -91,7 +91,10 @@ def main():
             State.NEW_QUESTION: [
                 RegexHandler("Новый вопрос", handle_new_question_request)
             ],
-            State.SURRENDER: [RegexHandler("Сдаться", handle_surrender)],
+            State.SURRENDER: [
+                RegexHandler("Сдаться", handle_surrender),
+                MessageHandler(Filters.text, handle_solution_attempt),
+            ],
             State.SOLUTION_ATTEMPT: [
                 MessageHandler(Filters.text, handle_solution_attempt)
             ],
