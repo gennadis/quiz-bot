@@ -29,3 +29,23 @@ def parse_quiz_file(filename: str) -> dict:
         parsed_quiz_items[question] = answer
 
     return parsed_quiz_items
+
+
+def collect_quiz_items(folderpath: str) -> dict:
+    quiz_items = dict()
+    quiz_files = [
+        os.path.join(folderpath, filename)
+        for filename in os.listdir(folderpath)
+        if filename.endswith(".txt")
+    ]
+
+    for file in quiz_files:
+        parsed_quiz_items = parse_quiz_file(file)
+        quiz_items.update(parsed_quiz_items)
+
+    return quiz_items
+
+
+if __name__ == "__main__":
+    quiz_items = collect_quiz_items("quiz-questions")
+    print(quiz_items)
