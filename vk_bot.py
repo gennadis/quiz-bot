@@ -6,7 +6,7 @@ from vk_api.keyboard import VkKeyboard, VkKeyboardColor
 from vk_api.longpoll import VkLongPoll, VkEventType
 from vk_api.utils import get_random_id
 
-from questions import get_random_quiz, QUIZ_FILEPATH, REDIS_CONN
+from questions import get_random_quiz, get_quiz_answer, QUIZ_FILEPATH, REDIS_CONN
 
 
 def set_keyboard():
@@ -31,6 +31,27 @@ def handle_new_question_request(event: VkLongPoll, vk: vk_api):
     )
 
 
+def handle_solution_attempt(event: VkLongPoll, vk: vk_api):
+    question = REDIS_CONN.get(name=event.user_id)
+    answer = get_quiz_answer(QUIZ_FILEPATH, question.decode("UTF-8"))
+
+    if event.text.lower() == answer.lower():
+        vk.messages.send(
+            user_id=event.user_id,
+            message="Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»",
+            keyboard=set_keyboard(),
+            random_id=get_random_id(),
+        )
+
+    else:
+        vk.messages.send(
+            user_id=event.user_id,
+            message="Неправильно… Попробуешь ещё раз?",
+            keyboard=set_keyboard(),
+            random_id=get_random_id(),
+        )
+
+
 def main(vk_token: str):
     vk_session = vk_api.VkApi(token=vk_token)
     vk = vk_session.get_api()
@@ -40,6 +61,8 @@ def main(vk_token: str):
         if event.type == VkEventType.MESSAGE_NEW and event.to_me:
             if event.text == "Новый вопрос":
                 handle_new_question_request(event, vk)
+            else:
+                handle_solution_attempt(event, vk)
 
 
 if __name__ == "__main__":
