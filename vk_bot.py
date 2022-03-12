@@ -1,3 +1,4 @@
+import logging
 import os
 
 import vk_api
@@ -7,6 +8,9 @@ from vk_api.longpoll import VkLongPoll, VkEventType
 from vk_api.utils import get_random_id
 
 from questions import get_random_quiz, get_quiz_answer, QUIZ_FILEPATH, REDIS_CONN
+
+
+logger = logging.getLogger(__file__)
 
 
 def set_keyboard():
@@ -65,9 +69,13 @@ def handle_surrender(event: VkLongPoll, vk: vk_api):
 
 
 def main(vk_token: str):
+    logging.basicConfig(level=logging.INFO)
+
     vk_session = vk_api.VkApi(token=vk_token)
     vk = vk_session.get_api()
     longpoll = VkLongPoll(vk_session)
+
+    logger.info("VK bot started")
 
     for event in longpoll.listen():
         if event.type == VkEventType.MESSAGE_NEW and event.to_me:

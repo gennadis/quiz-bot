@@ -15,9 +15,6 @@ from telegram.ext import (
 
 from questions import get_random_quiz, get_quiz_answer, REDIS_CONN, QUIZ_FILEPATH
 
-logging.basicConfig(
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
-)
 logger = logging.getLogger(__name__)
 
 custom_keyboard = [["Новый вопрос", "Сдаться"], ["Мой счет"]]
@@ -78,7 +75,10 @@ def error(bot, update, error):
 
 
 def main(tg_token):
+    logging.basicConfig(level=logging.INFO)
+
     updater = Updater(token=tg_token)
+    logger.info("Telegram bot started")
 
     converstaion_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
