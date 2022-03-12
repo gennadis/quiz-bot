@@ -52,6 +52,18 @@ def handle_solution_attempt(event: VkLongPoll, vk: vk_api):
         )
 
 
+def handle_surrender(event: VkLongPoll, vk: vk_api):
+    question = REDIS_CONN.get(name=event.user_id)
+    answer = get_quiz_answer(QUIZ_FILEPATH, question.decode("UTF-8"))
+
+    vk.messages.send(
+        user_id=event.user_id,
+        message=answer,
+        keyboard=set_keyboard(),
+        random_id=get_random_id(),
+    )
+
+
 def main(vk_token: str):
     vk_session = vk_api.VkApi(token=vk_token)
     vk = vk_session.get_api()
@@ -61,6 +73,8 @@ def main(vk_token: str):
         if event.type == VkEventType.MESSAGE_NEW and event.to_me:
             if event.text == "Новый вопрос":
                 handle_new_question_request(event, vk)
+            elif event.text == "Сдаться":
+                handle_surrender(event, vk)
             else:
                 handle_solution_attempt(event, vk)
 
