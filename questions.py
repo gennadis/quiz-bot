@@ -10,7 +10,10 @@ DB_URL, DB_PORT = os.getenv("DB_ADDRESS").rsplit(":")
 DB_NAME = os.getenv("DB_NAME")
 DB_PASSWORD = os.getenv("DB_PASSWORD")
 REDIS_CONN = redis.Redis(host=DB_URL, port=DB_PORT, db=DB_NAME, password=DB_PASSWORD)
-QUIZ_FILEPATH = "quiz-questions/quiz_items.json"
+
+QUIZ_FOLDER = "quiz-questions"
+QUIZ_FILE = "quiz_items.json"
+QUIZ_FILEPATH = os.path.join(QUIZ_FOLDER, QUIZ_FILE)
 
 
 def parse_quiz_file(filename: str) -> dict:
@@ -67,9 +70,9 @@ def get_quiz_answer(filepath: str, question: str) -> str:
 
 
 def main():
-    quiz_items = collect_quiz_items("quiz-questions")
-    quiz_items_filepath = os.path.join("quiz-questions", "quiz_items.json")
-    with open(quiz_items_filepath, "w") as file:
+    quiz_items = collect_quiz_items(QUIZ_FOLDER)
+
+    with open(QUIZ_FILEPATH, "w") as file:
         json.dump(obj=quiz_items, fp=file, ensure_ascii=False, indent=2)
 
 
