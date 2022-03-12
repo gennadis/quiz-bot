@@ -1,8 +1,6 @@
 import logging
 import os
-import random
 from enum import Enum, auto
-
 
 import telegram
 from dotenv import load_dotenv
@@ -79,10 +77,7 @@ def error(bot, update, error):
     logger.warning('Update "%s" caused error "%s"', update, error)
 
 
-def main():
-    load_dotenv()
-    tg_token = os.getenv("TG_TOKEN")
-
+def main(tg_token):
     updater = Updater(token=tg_token)
 
     converstaion_handler = ConversationHandler(
@@ -112,4 +107,7 @@ def main():
 
 
 if __name__ == "__main__":
+    load_dotenv()
+    tg_token = os.getenv("TG_TOKEN")
+
     main()
