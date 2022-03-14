@@ -17,7 +17,7 @@ from telegram.ext import (
 
 from questions import get_random_quiz, get_quiz_answer, get_redis_connection
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger(__file__)
 
 
 class State(Enum):
