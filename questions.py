@@ -32,9 +32,8 @@ def parse_quiz_file(filename: str) -> dict:
             _, question_text = line.split(sep=":", maxsplit=1)
             questions.append(question_text.replace("\n", " ").strip())
         elif line.strip().startswith("Ответ"):
-            _, full_answer = line.split(sep=":", maxsplit=1)
-            short_answer = full_answer.split(".")[0].split("(")[0]
-            answers.append(short_answer.replace("\n", " ").strip())
+            _, answer_text = line.split(sep=":", maxsplit=1)
+            answers.append(answer_text.replace("\n", " ").strip())
 
     for question, answer in zip(questions, answers):
         parsed_quiz_items[question] = answer
@@ -69,9 +68,9 @@ def get_quiz_answer(filepath: str, question: str) -> str:
     with open(filepath, "r") as file:
         quiz_items = json.load(file)
     full_answer = quiz_items[question]
-    answer, explanation = full_answer.split(".", maxsplit=1)
+    short_answer = full_answer.split(".")[0].split("(")[0]
 
-    return answer
+    return short_answer
 
 
 def main():
