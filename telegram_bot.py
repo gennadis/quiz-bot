@@ -19,9 +19,6 @@ from questions import get_random_quiz, get_quiz_answer, get_redis_connection
 
 logger = logging.getLogger(__name__)
 
-custom_keyboard = [["Новый вопрос", "Сдаться"], ["Мой счет"]]
-markup = telegram.ReplyKeyboardMarkup(custom_keyboard)
-
 
 class State(Enum):
     NEW_QUESTION = auto()
@@ -31,6 +28,10 @@ class State(Enum):
 
 def start(update: Update, context: CallbackContext):
     user = update.effective_user
+
+    custom_keyboard = [["Новый вопрос", "Сдаться"], ["Мой счет"]]
+    markup = telegram.ReplyKeyboardMarkup(custom_keyboard)
+
     update.message.reply_text(
         f"Привет, {user.first_name}! Я - бот для викторин!", reply_markup=markup
     )
