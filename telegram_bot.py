@@ -5,12 +5,14 @@ from enum import Enum, auto
 import redis
 import telegram
 from dotenv import load_dotenv
+from telegram import Update
 from telegram.ext import (
     Updater,
     CommandHandler,
     MessageHandler,
     Filters,
     ConversationHandler,
+    CallbackContext,
 )
 
 from questions import (
@@ -32,27 +34,31 @@ class State(Enum):
     SURRENDER = auto()
 
 
-def start(update, context):
+def start(update: Update, context: CallbackContext):
     update.message.reply_text("Привет! Я - бот для викторин!", reply_markup=markup)
 
     return State.NEW_QUESTION
 
 
-def handle_new_question_request(update, context):
+def handle_new_question_request(update: Update, context: CallbackContext):
+    user_id = update.effective_user.id
     question, answer = get_random_quiz(QUIZ_FILEPATH)
     redis_connection = context.bot_data.get("redis")
-    redis_connection.set(name=update.message.chat_id, value=question)
+    redis_connection.set(name=user_id, value=question)
     update.message.reply_text(question)
 
     return State.SOLUTION_ATTEMPT
 
 
 def handle_solution_attempt(update, context):
+    user_id = update.effective_user.id
+    user_text = update.message.text
+
     redis_connection = context.bot_data.get("redis")
-    question = redis_connection.get(name=update.message.chat_id)
+    question = redis_connection.get(name=user_id)
     answer = get_quiz_answer(QUIZ_FILEPATH, question.decode("UTF-8"))
 
-    if update.message.text.lower() == answer.lower():
+    if user_text.lower() == answer.lower():
         update.message.reply_text(
             "Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»"
         )
@@ -63,8 +69,9 @@ def handle_solution_attempt(update, context):
 
 
 def handle_surrender(update, context):
+    user_id = update.effective_user.id
     redis_connection = context.bot_data.get("redis")
-    question = redis_connection.get(name=update.message.chat_id)
+    question = redis_connection.get(name=user_id)
     answer = get_quiz_answer(QUIZ_FILEPATH, question.decode("UTF-8"))
 
     update.message.reply_text(answer)
@@ -86,20 +93,20 @@ def main(tg_token: str, redis_connection: redis.Connection):
     logging.basicConfig(level=logging.INFO)
 
     updater = Updater(token=tg_token, use_context=True)
-    updater.dispatcher.bot_data.update({"redis": redis_connection})
-
-    logger.info("Telegram bot started")
+    dispatcher = updater.dispatcher
+    dispatcher.bot_data["redis"] = redis_connection
+    dispatcher.add_error_handler(error)
 
     converstaion_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
         states={
             State.NEW_QUESTION: [
                 MessageHandler(
-                    Filters.regex("^(Новый вопрос)$"), handle_new_question_request
+                    Filters.regex(r"Новый вопрос"), handle_new_question_request
                 ),
             ],
             State.SURRENDER: [
-                MessageHandler(Filters.regex("^(Сдаться)$"), handle_surrender),
+                MessageHandler(Filters.regex(r"Сдаться"), handle_surrender),
                 MessageHandler(Filters.text, handle_solution_attempt),
             ],
             State.SOLUTION_ATTEMPT: [
@@ -109,13 +116,11 @@ def main(tg_token: str, redis_connection: redis.Connection):
         fallbacks=[],
     )
 
-    dp = updater.dispatcher
-    dp.add_handler(converstaion_handler)
-
-    dp.add_error_handler(error)
+    dispatcher.add_handler(converstaion_handler)
 
     updater.start_polling()
     updater.idle()
+    logger.info("Telegram bot started")
 
 
 if __name__ == "__main__":
