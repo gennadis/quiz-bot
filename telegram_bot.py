@@ -35,7 +35,10 @@ class State(Enum):
 
 
 def start(update: Update, context: CallbackContext):
-    update.message.reply_text("Привет! Я - бот для викторин!", reply_markup=markup)
+    user = update.effective_user
+    update.message.reply_text(
+        f"Привет, {user.first_name}! Я - бот для викторин!", reply_markup=markup
+    )
 
     return State.NEW_QUESTION
 
@@ -50,7 +53,7 @@ def handle_new_question_request(update: Update, context: CallbackContext):
     return State.SOLUTION_ATTEMPT
 
 
-def handle_solution_attempt(update, context):
+def handle_solution_attempt(update: Update, context: CallbackContext):
     user_id = update.effective_user.id
     user_text = update.message.text
 
@@ -68,7 +71,7 @@ def handle_solution_attempt(update, context):
         return State.SURRENDER
 
 
-def handle_surrender(update, context):
+def handle_surrender(update: Update, context: CallbackContext):
     user_id = update.effective_user.id
     redis_connection = context.bot_data.get("redis")
     question = redis_connection.get(name=user_id)
@@ -79,14 +82,13 @@ def handle_surrender(update, context):
     return State.NEW_QUESTION
 
 
-def help(update, context):
+def help(update: Update, context: CallbackContext):
     """Send a message when the command /help is issued."""
     update.message.reply_text("Help!")
 
 
-def error(update, error):
-    """Log Errors caused by Updates."""
-    logger.warning('Update "%s" caused error "%s"', update, error)
+def error_handler(update: Update, context: CallbackContext):
+    logger.error(msg="Telegram bot encountered an error", exc_info=context.error)
 
 
 def main(tg_token: str, redis_connection: redis.Connection):
@@ -95,7 +97,7 @@ def main(tg_token: str, redis_connection: redis.Connection):
     updater = Updater(token=tg_token, use_context=True)
     dispatcher = updater.dispatcher
     dispatcher.bot_data["redis"] = redis_connection
-    dispatcher.add_error_handler(error)
+    dispatcher.add_error_handler(error_handler)
 
     converstaion_handler = ConversationHandler(
         entry_points=[CommandHandler("start", start)],
