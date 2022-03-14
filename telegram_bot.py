@@ -40,7 +40,7 @@ def start(bot, update):
 
 def handle_new_question_request(bot, update, context):
     question, answer = get_random_quiz(QUIZ_FILEPATH)
-    redis_connection = context.bot_data.get("redis_connectio")
+    redis_connection = context.bot_data.get("redis")
     redis_connection.set(name=update.message.chat_id, value=question)
     update.message.reply_text(question)
 
@@ -48,7 +48,7 @@ def handle_new_question_request(bot, update, context):
 
 
 def handle_solution_attempt(bot, update, context):
-    redis_connection = context.bot_data.get("redis_connection")
+    redis_connection = context.bot_data.get("redis")
     question = redis_connection.get(name=update.message.chat_id)
     answer = get_quiz_answer(QUIZ_FILEPATH, question.decode("UTF-8"))
 
@@ -63,7 +63,7 @@ def handle_solution_attempt(bot, update, context):
 
 
 def handle_surrender(bot, update, context):
-    redis_connection = context.bot_data.get("redis_connection")
+    redis_connection = context.bot_data.get("redis")
     question = redis_connection.get(name=update.message.chat_id)
     answer = get_quiz_answer(QUIZ_FILEPATH, question.decode("UTF-8"))
 
@@ -86,7 +86,7 @@ def main(tg_token: str, redis_connection: redis.Connection):
     logging.basicConfig(level=logging.INFO)
 
     updater = Updater(token=tg_token, use_context=True)
-    updater.dispatcher.bot_data.update({"redis_connection": redis_connection})
+    updater.dispatcher.bot_data.update({"redis": redis_connection})
 
     logger.info("Telegram bot started")
 
