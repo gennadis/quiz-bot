@@ -11,7 +11,6 @@ from telegram.ext import (
     MessageHandler,
     Filters,
     ConversationHandler,
-    RegexHandler,
 )
 
 from questions import (
@@ -95,10 +94,12 @@ def main(tg_token: str, redis_connection: redis.Connection):
         entry_points=[CommandHandler("start", start)],
         states={
             State.NEW_QUESTION: [
-                RegexHandler("Новый вопрос", handle_new_question_request)
+                MessageHandler(
+                    Filters.regex("^(Новый вопрос)$"), handle_new_question_request
+                ),
             ],
             State.SURRENDER: [
-                RegexHandler("Сдаться", handle_surrender),
+                MessageHandler(Filters.regex("^(Сдаться)$"), handle_surrender),
                 MessageHandler(Filters.text, handle_solution_attempt),
             ],
             State.SOLUTION_ATTEMPT: [
