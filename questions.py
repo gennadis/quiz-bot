@@ -3,17 +3,21 @@ import os
 import random
 
 import redis
-from dotenv import load_dotenv
-
-load_dotenv()
-DB_URL, DB_PORT = os.getenv("DB_ADDRESS").rsplit(":")
-DB_NAME = os.getenv("DB_NAME")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-REDIS_CONN = redis.Redis(host=DB_URL, port=DB_PORT, db=DB_NAME, password=DB_PASSWORD)
 
 QUIZ_FOLDER = "quiz-questions"
 QUIZ_FILE = "quiz_items.json"
 QUIZ_FILEPATH = os.path.join(QUIZ_FOLDER, QUIZ_FILE)
+
+
+def get_redis_connection(
+    db_address: str, db_name: str, db_password: str
+) -> redis.Connection:
+    db_url, db_port = db_address.rsplit(":")
+    redis_connection = redis.Redis(
+        host=db_url, port=db_port, db=db_name, password=db_password
+    )
+
+    return redis_connection
 
 
 def parse_quiz_file(filename: str) -> dict:
