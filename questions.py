@@ -3,10 +3,7 @@ import os
 import random
 
 import redis
-
-QUIZ_FOLDER = "quiz-questions"
-QUIZ_FILE = "quiz_items.json"
-QUIZ_FILEPATH = os.path.join(QUIZ_FOLDER, QUIZ_FILE)
+from dotenv import load_dotenv
 
 
 def get_redis_connection(
@@ -74,9 +71,14 @@ def get_quiz_answer(filepath: str, question: str) -> str:
 
 
 def main():
-    quiz_items = collect_quiz_items(QUIZ_FOLDER)
+    load_dotenv()
+    quiz_folder = os.getenv("QUIZ_FOLDER")
+    quiz_file = os.getenv("QUIZ_FILE")
+    quiz_filepath = os.path.join(quiz_folder, quiz_file)
 
-    with open(QUIZ_FILEPATH, "w") as file:
+    quiz_items = collect_quiz_items(quiz_folder)
+
+    with open(quiz_filepath, "w") as file:
         json.dump(obj=quiz_items, fp=file, ensure_ascii=False, indent=2)
 
 
