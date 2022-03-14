@@ -2,6 +2,7 @@ import logging
 import os
 from enum import Enum, auto
 
+import redis
 import telegram
 from dotenv import load_dotenv
 from telegram.ext import (
@@ -13,7 +14,12 @@ from telegram.ext import (
     RegexHandler,
 )
 
-from questions import get_random_quiz, get_quiz_answer, REDIS_CONN, QUIZ_FILEPATH
+from questions import (
+    get_random_quiz,
+    get_quiz_answer,
+    get_redis_connection,
+    QUIZ_FILEPATH,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -33,16 +39,18 @@ def start(bot, update):
     return State.NEW_QUESTION
 
 
-def handle_new_question_request(bot, update):
+def handle_new_question_request(bot, update, context):
     question, answer = get_random_quiz(QUIZ_FILEPATH)
-    REDIS_CONN.set(name=update.message.chat_id, value=question)
+    redis_connection = context.bot_data.get("redis_connectio")
+    redis_connection.set(name=update.message.chat_id, value=question)
     update.message.reply_text(question)
 
     return State.SOLUTION_ATTEMPT
 
 
-def handle_solution_attempt(bot, update):
-    question = REDIS_CONN.get(name=update.message.chat_id)
+def handle_solution_attempt(bot, update, context):
+    redis_connection = context.bot_data.get("redis_connection")
+    question = redis_connection.get(name=update.message.chat_id)
     answer = get_quiz_answer(QUIZ_FILEPATH, question.decode("UTF-8"))
 
     if update.message.text.lower() == answer.lower():
@@ -55,8 +63,9 @@ def handle_solution_attempt(bot, update):
         return State.SURRENDER
 
 
-def handle_surrender(bot, update):
-    question = REDIS_CONN.get(name=update.message.chat_id)
+def handle_surrender(bot, update, context):
+    redis_connection = context.bot_data.get("redis_connection")
+    question = redis_connection.get(name=update.message.chat_id)
     answer = get_quiz_answer(QUIZ_FILEPATH, question.decode("UTF-8"))
 
     update.message.reply_text(answer)
@@ -74,10 +83,12 @@ def error(bot, update, error):
     logger.warning('Update "%s" caused error "%s"', update, error)
 
 
-def main(tg_token):
+def main(tg_token: str, redis_connection: redis.Connection):
     logging.basicConfig(level=logging.INFO)
 
-    updater = Updater(token=tg_token)
+    updater = Updater(token=tg_token, use_context=True)
+    updater.dispatcher.bot_data.update({"redis_connection": redis_connection})
+
     logger.info("Telegram bot started")
 
     converstaion_handler = ConversationHandler(
@@ -109,5 +120,12 @@ def main(tg_token):
 if __name__ == "__main__":
     load_dotenv()
     tg_token = os.getenv("TG_TOKEN")
+    db_address = os.getenv("DB_ADDRESS")
+    db_name = os.getenv("DB_NAME")
+    db_password = os.getenv("DB_PASSWORD")
 
-    main(tg_token)
+    redis_connection = get_redis_connection(
+        db_address=db_address, db_name=db_name, db_password=db_password
+    )
+
+    main(tg_token=tg_token, redis_connection=redis_connection)
