@@ -32,13 +32,13 @@ class State(Enum):
     SURRENDER = auto()
 
 
-def start(bot, update):
+def start(update, context):
     update.message.reply_text("Привет! Я - бот для викторин!", reply_markup=markup)
 
     return State.NEW_QUESTION
 
 
-def handle_new_question_request(bot, update, context):
+def handle_new_question_request(update, context):
     question, answer = get_random_quiz(QUIZ_FILEPATH)
     redis_connection = context.bot_data.get("redis")
     redis_connection.set(name=update.message.chat_id, value=question)
@@ -47,7 +47,7 @@ def handle_new_question_request(bot, update, context):
     return State.SOLUTION_ATTEMPT
 
 
-def handle_solution_attempt(bot, update, context):
+def handle_solution_attempt(update, context):
     redis_connection = context.bot_data.get("redis")
     question = redis_connection.get(name=update.message.chat_id)
     answer = get_quiz_answer(QUIZ_FILEPATH, question.decode("UTF-8"))
@@ -62,7 +62,7 @@ def handle_solution_attempt(bot, update, context):
         return State.SURRENDER
 
 
-def handle_surrender(bot, update, context):
+def handle_surrender(update, context):
     redis_connection = context.bot_data.get("redis")
     question = redis_connection.get(name=update.message.chat_id)
     answer = get_quiz_answer(QUIZ_FILEPATH, question.decode("UTF-8"))
@@ -72,12 +72,12 @@ def handle_surrender(bot, update, context):
     return State.NEW_QUESTION
 
 
-def help(bot, update):
+def help(update, context):
     """Send a message when the command /help is issued."""
     update.message.reply_text("Help!")
 
 
-def error(bot, update, error):
+def error(update, error):
     """Log Errors caused by Updates."""
     logger.warning('Update "%s" caused error "%s"', update, error)
 
