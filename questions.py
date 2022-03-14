@@ -28,8 +28,9 @@ def parse_quiz_file(filename: str) -> dict:
             _, question_text = line.split(sep=":", maxsplit=1)
             questions.append(question_text.replace("\n", " ").strip())
         elif line.strip().startswith("Ответ"):
-            _, answer_text = line.split(sep=":", maxsplit=1)
-            answers.append(answer_text.replace("\n", " ").strip())
+            _, full_answer = line.split(sep=":", maxsplit=1)
+            short_answer = full_answer.split(".")[0].split("(")[0]
+            answers.append(short_answer.replace("\n", " ").strip())
 
     for question, answer in zip(questions, answers):
         parsed_quiz_items[question] = answer
