@@ -1,13 +1,14 @@
 import logging
 import os
 
+import redis
 import vk_api
 from dotenv import load_dotenv
 from vk_api.keyboard import VkKeyboard, VkKeyboardColor
 from vk_api.longpoll import VkLongPoll, VkEventType
 from vk_api.utils import get_random_id
 
-from questions import get_random_quiz, get_quiz_answer, QUIZ_FILEPATH, REDIS_CONN
+from questions import get_random_quiz, get_quiz_answer, get_redis_connection
 
 
 logger = logging.getLogger(__file__)
@@ -23,9 +24,14 @@ def set_keyboard():
     return keyboard.get_keyboard()
 
 
-def handle_new_question_request(event: VkLongPoll, vk: vk_api):
-    question, answer = get_random_quiz(QUIZ_FILEPATH)
-    REDIS_CONN.set(name=event.user_id, value=question)
+def handle_new_question_request(
+    event: VkLongPoll,
+    vk: vk_api,
+    redis_connection: redis.Connection,
+    quiz_filepath: str,
+):
+    question, answer = get_random_quiz(quiz_filepath)
+    redis_connection.set(name=event.user_id, value=question)
 
     vk.messages.send(
         user_id=event.user_id,
@@ -35,9 +41,14 @@ def handle_new_question_request(event: VkLongPoll, vk: vk_api):
     )
 
 
-def handle_solution_attempt(event: VkLongPoll, vk: vk_api):
-    question = REDIS_CONN.get(name=event.user_id)
-    answer = get_quiz_answer(QUIZ_FILEPATH, question.decode("UTF-8"))
+def handle_solution_attempt(
+    event: VkLongPoll,
+    vk: vk_api,
+    redis_connection: redis.Connection,
+    quiz_filepath: str,
+):
+    question = redis_connection.get(name=event.user_id)
+    answer = get_quiz_answer(quiz_filepath, question.decode("UTF-8"))
 
     if event.text.lower() == answer.lower():
         vk.messages.send(
@@ -56,9 +67,14 @@ def handle_solution_attempt(event: VkLongPoll, vk: vk_api):
         )
 
 
-def handle_surrender(event: VkLongPoll, vk: vk_api):
-    question = REDIS_CONN.get(name=event.user_id)
-    answer = get_quiz_answer(QUIZ_FILEPATH, question.decode("UTF-8"))
+def handle_surrender(
+    event: VkLongPoll,
+    vk: vk_api,
+    redis_connection: redis.Connection,
+    quiz_filepath: str,
+):
+    question = redis_connection.get(name=event.user_id)
+    answer = get_quiz_answer(quiz_filepath, question.decode("UTF-8"))
 
     vk.messages.send(
         user_id=event.user_id,
@@ -68,7 +84,7 @@ def handle_surrender(event: VkLongPoll, vk: vk_api):
     )
 
 
-def main(vk_token: str):
+def main(vk_token: str, redis_connection: redis.Connection, quiz_filepath: str):
     logging.basicConfig(level=logging.INFO)
 
     vk_session = vk_api.VkApi(token=vk_token)
@@ -80,15 +96,31 @@ def main(vk_token: str):
     for event in longpoll.listen():
         if event.type == VkEventType.MESSAGE_NEW and event.to_me:
             if event.text == "Новый вопрос":
-                handle_new_question_request(event, vk)
+                handle_new_question_request(event, vk, redis_connection, quiz_filepath)
             elif event.text == "Сдаться":
-                handle_surrender(event, vk)
+                handle_surrender(event, vk, redis_connection, quiz_filepath)
             else:
-                handle_solution_attempt(event, vk)
+                handle_solution_attempt(event, vk, redis_connection, quiz_filepath)
 
 
 if __name__ == "__main__":
     load_dotenv()
     vk_token = os.getenv("VK_TOKEN")
 
-    main(vk_token)
+    db_address = os.getenv("DB_ADDRESS")
+    db_name = os.getenv("DB_NAME")
+    db_password = os.getenv("DB_PASSWORD")
+
+    quiz_folder = os.getenv("QUIZ_FOLDER")
+    quiz_file = os.getenv("QUIZ_FILE")
+    quiz_filepath = os.path.join(quiz_folder, quiz_file)
+
+    redis_connection = get_redis_connection(
+        db_address=db_address, db_name=db_name, db_password=db_password
+    )
+
+    main(
+        vk_token=vk_token,
+        redis_connection=redis_connection,
+        quiz_filepath=quiz_filepath,
+    )
