@@ -55,10 +55,12 @@ def collect_quiz_items(folderpath: str) -> dict:
     return quiz_items
 
 
-def get_random_quiz(filepath: str) -> tuple[str, str]:
-    with open(filepath, "r") as file:
-        quiz_items = json.load(file)
-    question, answer = random.choice(list(quiz_items.items()))
+def get_random_quiz(redis: redis.Redis) -> tuple[str, str]:
+    random_hash_field = redis.hrandfield(key=REDIS_QUIZ_ITEMS_HASH_NAME)
+    random_quiz = redis.hget(name=REDIS_QUIZ_ITEMS_HASH_NAME, key=random_hash_field)
+
+    serialized_quiz = json.loads(random_quiz)
+    question, answer = serialized_quiz["question"], serialized_quiz["answer"]
 
     return question, answer
 
