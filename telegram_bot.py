@@ -2,7 +2,6 @@ import json
 import logging
 import os
 from enum import Enum, auto
-from unicodedata import name
 
 import redis
 import telegram
@@ -104,13 +103,12 @@ def error_handler(update: Update, context: CallbackContext):
     logger.error(msg="Telegram bot encountered an error", exc_info=context.error)
 
 
-def main(tg_token: str, redis_connection: redis.Redis, quiz_filepath: str):
+def main(tg_token: str, redis_connection: redis.Redis):
     logging.basicConfig(level=logging.INFO)
 
     updater = Updater(token=tg_token, use_context=True)
     dispatcher = updater.dispatcher
     dispatcher.bot_data["redis"] = redis_connection
-    dispatcher.bot_data["quiz_filepath"] = quiz_filepath
     dispatcher.add_error_handler(error_handler)
 
     converstaion_handler = ConversationHandler(
@@ -147,17 +145,8 @@ if __name__ == "__main__":
     db_address = os.getenv("DB_ADDRESS")
     db_name = os.getenv("DB_NAME")
     db_password = os.getenv("DB_PASSWORD")
-
-    quiz_folder = os.getenv("QUIZ_FOLDER")
-    quiz_file = os.getenv("QUIZ_FILE")
-    quiz_filepath = os.path.join(quiz_folder, quiz_file)
-
     redis_connection = get_redis_connection(
         db_address=db_address, db_name=db_name, db_password=db_password
     )
 
-    main(
-        tg_token=tg_token,
-        redis_connection=redis_connection,
-        quiz_filepath=quiz_filepath,
-    )
+    main(tg_token, redis_connection)

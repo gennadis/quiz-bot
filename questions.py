@@ -91,8 +91,6 @@ def format_quiz_for_redis(quiz: tuple[str, str], quiz_number: int) -> tuple[str,
 def main():
     load_dotenv()
     quiz_folder = os.getenv("QUIZ_FOLDER")
-    quiz_file = os.getenv("QUIZ_FILE")
-    quiz_filepath = os.path.join(quiz_folder, quiz_file)
 
     db_address = os.getenv("DB_ADDRESS")
     db_name = os.getenv("DB_NAME")
