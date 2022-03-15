@@ -65,10 +65,11 @@ def get_random_quiz(redis: redis.Redis) -> tuple[str, str]:
     return quiz_number, deserialized_quiz
 
 
-def get_quiz_answer(filepath: str, question: str) -> str:
-    with open(filepath, "r") as file:
-        quiz_items = json.load(file)
-    full_answer = quiz_items[question]
+def get_quiz_answer(redis: redis.Redis, quiz_number: str) -> str:
+    quiz = redis.hget(name=REDIS_QUIZ_ITEMS_HASH_NAME, key=quiz_number)
+    serialized_quiz = json.loads(quiz)
+
+    full_answer = serialized_quiz["answer"]
     short_answer = full_answer.split(".")[0].split("(")[0]
 
     return short_answer
