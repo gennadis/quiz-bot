@@ -42,11 +42,10 @@ def start(update: Update, context: CallbackContext):
 def handle_new_question_request(update: Update, context: CallbackContext):
     user_id = update.effective_user.id
 
-    quiz_filepath = context.bot_data.get("quiz_filepath")
-    question, answer = get_random_quiz(quiz_filepath)
-
     redis_connection = context.bot_data.get("redis")
     redis_connection.set(name=user_id, value=question)
+
+    question, answer = get_random_quiz(redis_connection)
 
     update.message.reply_text(question)
 
