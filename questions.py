@@ -5,6 +5,8 @@ import random
 import redis
 from dotenv import load_dotenv
 
+REDIS_QUIZ_ITEMS_HASH_NAME = "quiz_items"
+
 
 def get_redis_connection(
     db_address: str, db_name: str, db_password: str
@@ -89,11 +91,20 @@ def main():
     quiz_file = os.getenv("QUIZ_FILE")
     quiz_filepath = os.path.join(quiz_folder, quiz_file)
 
-    quiz_items = collect_quiz_items(quiz_folder)
+    db_address = os.getenv("DB_ADDRESS")
+    db_name = os.getenv("DB_NAME")
+    db_password = os.getenv("DB_PASSWORD")
 
+    redis_connection = get_redis_connection(
+        db_address=db_address, db_name=db_name, db_password=db_password
+    )
+
+    quiz_items = collect_quiz_items(quiz_folder)
     for number, quiz in enumerate(quiz_items.items(), start=1):
         redis_key, redis_value = format_quiz_for_redis(quiz=quiz, quiz_number=number)
-        print(redis_key, redis_value)
+        redis_connection.hset(
+            REDIS_QUIZ_ITEMS_HASH_NAME, key=redis_key, value=redis_value
+        )
 
 
 if __name__ == "__main__":
