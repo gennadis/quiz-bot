@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 
 def get_redis_connection(
     db_address: str, db_name: str, db_password: str
-) -> redis.Connection:
+) -> redis.Redis:
     db_url, db_port = db_address.rsplit(":")
     redis_connection = redis.Redis(
         host=db_url, port=db_port, db=db_name, password=db_password
@@ -70,6 +70,19 @@ def get_quiz_answer(filepath: str, question: str) -> str:
     return short_answer
 
 
+def format_quiz_for_redis(quiz: tuple[str, str], quiz_number: int) -> tuple[str, str]:
+    question, answer = quiz
+    formatted_quiz = {
+        "question": question,
+        "answer": answer,
+    }
+
+    redis_key = f"question_{quiz_number}"
+    redis_value = json.dumps(formatted_quiz, ensure_ascii=False)
+
+    return redis_key, redis_value
+
+
 def main():
     load_dotenv()
     quiz_folder = os.getenv("QUIZ_FOLDER")
@@ -78,8 +91,9 @@ def main():
 
     quiz_items = collect_quiz_items(quiz_folder)
 
-    with open(quiz_filepath, "w") as file:
-        json.dump(obj=quiz_items, fp=file, ensure_ascii=False, indent=2)
+    for number, quiz in enumerate(quiz_items.items(), start=1):
+        redis_key, redis_value = format_quiz_for_redis(quiz=quiz, quiz_number=number)
+        print(redis_key, redis_value)
 
 
 if __name__ == "__main__":
