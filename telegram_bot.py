@@ -118,7 +118,8 @@ def main(tg_token: str, redis_connection: redis.Connection, quiz_filepath: str):
                 MessageHandler(Filters.text, handle_solution_attempt),
             ],
             State.SOLUTION_ATTEMPT: [
-                MessageHandler(Filters.text, handle_solution_attempt)
+                MessageHandler(Filters.regex(r"Сдаться"), handle_surrender),
+                MessageHandler(Filters.text, handle_solution_attempt),
             ],
         },
         fallbacks=[],
