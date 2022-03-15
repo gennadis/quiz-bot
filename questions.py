@@ -59,10 +59,10 @@ def get_random_quiz(redis: redis.Redis) -> tuple[str, str]:
     random_hash_field = redis.hrandfield(key=REDIS_QUIZ_ITEMS_HASH_NAME)
     random_quiz = redis.hget(name=REDIS_QUIZ_ITEMS_HASH_NAME, key=random_hash_field)
 
+    quiz_number = random_hash_field.decode("utf-8")
     serialized_quiz = json.loads(random_quiz)
-    question, answer = serialized_quiz["question"], serialized_quiz["answer"]
 
-    return question, answer
+    return quiz_number, serialized_quiz
 
 
 def get_quiz_answer(filepath: str, question: str) -> str:
