@@ -1,6 +1,8 @@
+import json
 import logging
 import os
 from enum import Enum, auto
+from unicodedata import name
 
 import redis
 import telegram
@@ -16,6 +18,8 @@ from telegram.ext import (
 )
 
 from questions import get_random_quiz, get_quiz_answer, get_redis_connection
+
+REDIS_QUIZ_USERS_HASH_NAME = "quiz_users"
 
 logger = logging.getLogger(__file__)
 
@@ -39,13 +43,24 @@ def start(update: Update, context: CallbackContext):
     return State.NEW_QUESTION
 
 
+def format_user_for_redis(user_id: int, question: str):
+    formatted_user_id = f"user_tg_{user_id}"
+    serialized_question = json.dumps({"last_asked_question": question})
+
+    return formatted_user_id, serialized_question
+
+
 def handle_new_question_request(update: Update, context: CallbackContext):
     user_id = update.effective_user.id
-
-    redis_connection = context.bot_data.get("redis")
-    redis_connection.set(name=user_id, value=question)
+    redis_connection: redis.Redis = context.bot_data.get("redis")
 
     question, answer = get_random_quiz(redis_connection)
+    formatted_user_id, serialized_question = format_user_for_redis(user_id, question)
+    redis_connection.hset(
+        name=REDIS_QUIZ_USERS_HASH_NAME,
+        key=formatted_user_id,
+        value=serialized_question,
+    )
 
     update.message.reply_text(question)
 
@@ -95,7 +110,7 @@ def error_handler(update: Update, context: CallbackContext):
     logger.error(msg="Telegram bot encountered an error", exc_info=context.error)
 
 
-def main(tg_token: str, redis_connection: redis.Connection, quiz_filepath: str):
+def main(tg_token: str, redis_connection: redis.Redis, quiz_filepath: str):
     logging.basicConfig(level=logging.INFO)
 
     updater = Updater(token=tg_token, use_context=True)
