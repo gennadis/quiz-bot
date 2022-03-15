@@ -43,26 +43,18 @@ def start(update: Update, context: CallbackContext):
     return State.NEW_QUESTION
 
 
-def format_user_for_redis(user_id: int, question: str):
-    formatted_user_id = f"user_tg_{user_id}"
-    serialized_question = json.dumps({"last_asked_question": question})
-
-    return formatted_user_id, serialized_question
-
-
 def handle_new_question_request(update: Update, context: CallbackContext):
     user_id = update.effective_user.id
     redis_connection: redis.Redis = context.bot_data.get("redis")
+    quiz_number, deserialized_quiz = get_random_quiz(redis_connection)
 
-    question, answer = get_random_quiz(redis_connection)
-    formatted_user_id, serialized_question = format_user_for_redis(user_id, question)
     redis_connection.hset(
         name=REDIS_QUIZ_USERS_HASH_NAME,
-        key=formatted_user_id,
-        value=serialized_question,
+        key=f"user_tg_{user_id}",
+        value=json.dumps({"last_asked_question": quiz_number}),
     )
 
-    update.message.reply_text(question)
+    update.message.reply_text(deserialized_quiz["question"])
 
     return State.SOLUTION_ATTEMPT
 
