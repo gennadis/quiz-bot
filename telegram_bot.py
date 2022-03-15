@@ -62,12 +62,13 @@ def handle_new_question_request(update: Update, context: CallbackContext):
 def handle_solution_attempt(update: Update, context: CallbackContext):
     user_id = update.effective_user.id
     user_text = update.message.text
+    redis_connection: redis.Redis = context.bot_data.get("redis")
 
-    redis_connection = context.bot_data.get("redis")
-    question = redis_connection.get(name=user_id)
-
-    quiz_filepath = context.bot_data.get("quiz_filepath")
-    answer = get_quiz_answer(quiz_filepath, question.decode("UTF-8"))
+    serialized_question = redis_connection.hget(
+        name=REDIS_QUIZ_USERS_HASH_NAME, key=f"user_tg_{user_id}"
+    )
+    quiz_number = json.loads(serialized_question)["last_asked_question"]
+    answer = get_quiz_answer(redis_connection, quiz_number)
 
     if user_text.lower() == answer.lower():
         update.message.reply_text(
