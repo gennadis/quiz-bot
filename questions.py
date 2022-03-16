@@ -1,10 +1,10 @@
 import json
 import os
-import random
 
 import redis
 from dotenv import load_dotenv
 
+QUIZ_FOLDER = "quiz_questions"
 REDIS_QUIZ_ITEMS_HASH_NAME = "quiz_items"
 
 
@@ -75,36 +75,37 @@ def get_quiz_answer(redis: redis.Redis, quiz_number: str) -> str:
     return short_answer
 
 
-def format_quiz_for_redis(quiz: tuple[str, str], quiz_number: int) -> tuple[str, str]:
+def format_quiz_for_redis(
+    quiz: tuple[str, str], question_number: int
+) -> tuple[str, str]:
     question, answer = quiz
     formatted_quiz = {
         "question": question,
         "answer": answer,
     }
 
-    redis_key = f"question_{quiz_number}"
-    redis_value = json.dumps(formatted_quiz, ensure_ascii=False)
+    quiz_number = f"question_{question_number}"
+    serialized_quiz = json.dumps(formatted_quiz, ensure_ascii=False)
 
-    return redis_key, redis_value
+    return quiz_number, serialized_quiz
 
 
 def main():
     load_dotenv()
-    quiz_folder = os.getenv("QUIZ_FOLDER")
-
     db_address = os.getenv("DB_ADDRESS")
     db_name = os.getenv("DB_NAME")
     db_password = os.getenv("DB_PASSWORD")
-
     redis_connection = get_redis_connection(
         db_address=db_address, db_name=db_name, db_password=db_password
     )
 
-    quiz_items = collect_quiz_items(quiz_folder)
+    quiz_items = collect_quiz_items(QUIZ_FOLDER)
     for number, quiz in enumerate(quiz_items.items(), start=1):
-        redis_key, redis_value = format_quiz_for_redis(quiz=quiz, quiz_number=number)
+        quiz_number, serialized_quiz = format_quiz_for_redis(
+            quiz=quiz, question_number=number
+        )
         redis_connection.hset(
-            REDIS_QUIZ_ITEMS_HASH_NAME, key=redis_key, value=redis_value
+            REDIS_QUIZ_ITEMS_HASH_NAME, key=quiz_number, value=serialized_quiz
         )
 
 
