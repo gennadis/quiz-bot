@@ -66,8 +66,8 @@ def get_random_quiz(redis: redis.Redis) -> tuple[str, str]:
     return quiz_number, deserialized_quiz
 
 
-def get_quiz_answer(redis: redis.Redis, user_id: int, system: str) -> str:
-    user_redis_id, user_stats = read_user_from_redis(redis, user_id, system)
+def get_quiz_answer(redis: redis.Redis, user_id: int, messenger: str) -> str:
+    user_redis_id, user_stats = read_user_from_redis(redis, user_id, messenger)
     quiz_number = user_stats["last_asked_question"]
     quiz = redis.hget(name=REDIS_ITEMS_HASH_NAME, key=quiz_number)
 
@@ -92,10 +92,10 @@ def format_quiz_for_redis(
     return quiz_number, serialized_quiz
 
 
-def create_new_user_in_redis(redis: redis.Redis, user_id: int, system: str) -> None:
+def create_new_user_in_redis(redis: redis.Redis, user_id: int, messenger: str) -> None:
     redis.hset(
         name=REDIS_USERS_HASH_NAME,
-        key=f"user_{system}_{user_id}",
+        key=f"user_{messenger}_{user_id}",
         value=json.dumps(
             {
                 "last_asked_question": None,
@@ -107,9 +107,9 @@ def create_new_user_in_redis(redis: redis.Redis, user_id: int, system: str) -> N
 
 
 def read_user_from_redis(
-    redis: redis.Redis, user_id: int, system: str
+    redis: redis.Redis, user_id: int, messenger: str
 ) -> tuple[str, dict]:
-    user_redis_id = f"user_{system}_{user_id}"
+    user_redis_id = USERNAME_TEMPLATE.format(messenger, user_id)
     user_stats_serialized = redis.hget(
         name=REDIS_USERS_HASH_NAME,
         key=user_redis_id,
@@ -119,8 +119,8 @@ def read_user_from_redis(
     return user_redis_id, user_stats
 
 
-def get_user_stats(redis: redis.Redis, user_id: int, system: str) -> tuple[int, int]:
-    user_redis_id, user_stats = read_user_from_redis(redis, user_id, system)
+def get_user_stats(redis: redis.Redis, user_id: int, messenger: str) -> tuple[int, int]:
+    user_redis_id, user_stats = read_user_from_redis(redis, user_id, messenger)
     correct_answers = user_stats["correct_answers"]
     total_answers = user_stats["total_answers"]
 
@@ -130,12 +130,12 @@ def get_user_stats(redis: redis.Redis, user_id: int, system: str) -> tuple[int, 
 def update_user_in_redis(
     redis: redis.Redis,
     user_id: int,
-    system: str,
+    messenger: str,
     latest_question: str = None,
     correct_delta: int = 0,
     total_delta: int = 0,
 ) -> None:
-    user_redis_id, user_stats = read_user_from_redis(redis, user_id, system)
+    user_redis_id, user_stats = read_user_from_redis(redis, user_id, messenger)
 
     if latest_question:
         user_stats["last_asked_question"] = latest_question

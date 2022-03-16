@@ -24,6 +24,7 @@ from questions import (
     get_user_stats,
 )
 
+TG_MESSENGER = "tg"
 
 logger = logging.getLogger(__file__)
 
@@ -39,7 +40,9 @@ def start(update: Update, context: CallbackContext):
     user_id = update.effective_user.id
     redis_connection: redis.Redis = context.bot_data.get("redis")
 
-    create_new_user_in_redis(redis=redis_connection, user_id=user_id, system="tg")
+    create_new_user_in_redis(
+        redis=redis_connection, user_id=user_id, messenger=TG_MESSENGER
+    )
 
     custom_keyboard = [["Новый вопрос", "Сдаться"], ["Мой счет"]]
     markup = telegram.ReplyKeyboardMarkup(custom_keyboard)
@@ -59,7 +62,7 @@ def handle_new_question_request(update: Update, context: CallbackContext):
     update_user_in_redis(
         redis=redis_connection,
         user_id=user_id,
-        system="tg",
+        messenger=TG_MESSENGER,
         latest_question=quiz_number,
     )
 
@@ -73,13 +76,15 @@ def handle_solution_attempt(update: Update, context: CallbackContext):
     user_text = update.message.text
     redis_connection: redis.Redis = context.bot_data.get("redis")
 
-    answer = get_quiz_answer(redis=redis_connection, user_id=user_id, system="tg")
+    answer = get_quiz_answer(
+        redis=redis_connection, user_id=user_id, messenger=TG_MESSENGER
+    )
 
     if user_text.lower() == answer.lower():
         update_user_in_redis(
             redis=redis_connection,
             user_id=user_id,
-            system="tg",
+            messenger=TG_MESSENGER,
             correct_delta=1,
             total_delta=1,
         )
@@ -91,7 +96,7 @@ def handle_solution_attempt(update: Update, context: CallbackContext):
         update_user_in_redis(
             redis=redis_connection,
             user_id=user_id,
-            system="tg",
+            messenger=TG_MESSENGER,
             total_delta=1,
         )
         update.message.reply_text("Неправильно… Попробуешь ещё раз?")
@@ -102,7 +107,9 @@ def handle_surrender(update: Update, context: CallbackContext):
     user_id = update.effective_user.id
     redis_connection: redis.Redis = context.bot_data.get("redis")
 
-    answer = get_quiz_answer(redis=redis_connection, user_id=user_id, system="tg")
+    answer = get_quiz_answer(
+        redis=redis_connection, user_id=user_id, messenger=TG_MESSENGER
+    )
 
     update.message.reply_text(answer)
 
@@ -114,7 +121,7 @@ def handle_score_request(update: Update, context: CallbackContext):
     redis_connection: redis.Redis = context.bot_data.get("redis")
 
     correct_answers, total_answers = get_user_stats(
-        redis=redis_connection, user_id=user_id, system="tg"
+        redis=redis_connection, user_id=user_id, messenger=TG_MESSENGER
     )
 
     update.message.reply_text(

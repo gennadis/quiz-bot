@@ -49,7 +49,7 @@ def handle_solution_attempt(
     event: VkLongPoll, vk: vk_api, redis_connection: redis.Redis
 ) -> None:
     user_id = event.user_id
-    answer = get_quiz_answer(redis=redis_connection, user_id=user_id, system="vk")
+    answer = get_quiz_answer(redis=redis_connection, user_id=user_id, messenger="vk")
 
     if event.text.lower() == answer.lower():
         vk.messages.send(
@@ -72,7 +72,7 @@ def handle_surrender(
     event: VkLongPoll, vk: vk_api, redis_connection: redis.Redis
 ) -> None:
     user_id = event.user_id
-    answer = get_quiz_answer(redis=redis_connection, user_id=user_id, system="vk")
+    answer = get_quiz_answer(redis=redis_connection, user_id=user_id, messenger="vk")
 
     vk.messages.send(
         user_id=user_id,
