@@ -66,11 +66,14 @@ def get_random_quiz(redis: redis.Redis) -> tuple[str, str]:
     return quiz_number, deserialized_quiz
 
 
-def get_quiz_answer(redis: redis.Redis, quiz_number: str) -> str:
+def get_quiz_answer(redis: redis.Redis, user_id: int, system: str) -> str:
+    serialized_question = redis.hget(
+        name=REDIS_USERS_HASH_NAME, key=f"user_{system}_{user_id}"
+    )
+    quiz_number = json.loads(serialized_question)["last_asked_question"]
     quiz = redis.hget(name=REDIS_ITEMS_HASH_NAME, key=quiz_number)
-    serialized_quiz = json.loads(quiz)
 
-    full_answer = serialized_quiz["answer"]
+    full_answer = json.loads(quiz)["answer"]
     short_answer = full_answer.split(".")[0].split("(")[0]
 
     return short_answer

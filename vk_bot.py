@@ -29,15 +29,16 @@ def set_keyboard():
 def handle_new_question_request(
     event: VkLongPoll, vk: vk_api, redis_connection: redis.Redis
 ) -> None:
+    user_id = event.user_id
     quiz_number, deserialized_quiz = get_random_quiz(redis_connection)
     redis_connection.hset(
         name=REDIS_USERS_HASH_NAME,
-        key=f"user_vk_{event.user_id}",
+        key=f"user_vk_{user_id}",
         value=json.dumps({"last_asked_question": quiz_number}),
     )
 
     vk.messages.send(
-        user_id=event.user_id,
+        user_id=user_id,
         message=deserialized_quiz["question"],
         keyboard=set_keyboard(),
         random_id=get_random_id(),
@@ -47,15 +48,12 @@ def handle_new_question_request(
 def handle_solution_attempt(
     event: VkLongPoll, vk: vk_api, redis_connection: redis.Redis
 ) -> None:
-    serialized_question = redis_connection.hget(
-        name=REDIS_USERS_HASH_NAME, key=f"user_vk_{event.user_id}"
-    )
-    quiz_number = json.loads(serialized_question)["last_asked_question"]
-    answer = get_quiz_answer(redis_connection, quiz_number)
+    user_id = event.user_id
+    answer = get_quiz_answer(redis=redis_connection, user_id=user_id, system="vk")
 
     if event.text.lower() == answer.lower():
         vk.messages.send(
-            user_id=event.user_id,
+            user_id=user_id,
             message="Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»",
             keyboard=set_keyboard(),
             random_id=get_random_id(),
@@ -73,14 +71,11 @@ def handle_solution_attempt(
 def handle_surrender(
     event: VkLongPoll, vk: vk_api, redis_connection: redis.Redis
 ) -> None:
-    serialized_question = redis_connection.hget(
-        name=REDIS_USERS_HASH_NAME, key=f"user_vk_{event.user_id}"
-    )
-    quiz_number = json.loads(serialized_question)["last_asked_question"]
-    answer = get_quiz_answer(redis_connection, quiz_number)
+    user_id = event.user_id
+    answer = get_quiz_answer(redis=redis_connection, user_id=user_id, system="vk")
 
     vk.messages.send(
-        user_id=event.user_id,
+        user_id=user_id,
         message=answer,
         keyboard=set_keyboard(),
         random_id=get_random_id(),

@@ -30,13 +30,13 @@ class State(Enum):
 
 
 def start(update: Update, context: CallbackContext):
-    user = update.effective_user
+    user_name = update.effective_user.first_name
 
     custom_keyboard = [["Новый вопрос", "Сдаться"], ["Мой счет"]]
     markup = telegram.ReplyKeyboardMarkup(custom_keyboard)
 
     update.message.reply_text(
-        f"Привет, {user.first_name}! Я - бот для викторин!", reply_markup=markup
+        f"Привет, {user_name}! Я - бот для викторин!", reply_markup=markup
     )
 
     return State.NEW_QUESTION
@@ -63,11 +63,7 @@ def handle_solution_attempt(update: Update, context: CallbackContext):
     user_text = update.message.text
     redis_connection: redis.Redis = context.bot_data.get("redis")
 
-    serialized_question = redis_connection.hget(
-        name=REDIS_USERS_HASH_NAME, key=f"user_tg_{user_id}"
-    )
-    quiz_number = json.loads(serialized_question)["last_asked_question"]
-    answer = get_quiz_answer(redis_connection, quiz_number)
+    answer = get_quiz_answer(redis=redis_connection, user_id=user_id, system="tg")
 
     if user_text.lower() == answer.lower():
         update.message.reply_text(
@@ -83,11 +79,7 @@ def handle_surrender(update: Update, context: CallbackContext):
     user_id = update.effective_user.id
     redis_connection: redis.Redis = context.bot_data.get("redis")
 
-    serialized_question = redis_connection.hget(
-        name=REDIS_USERS_HASH_NAME, key=f"user_tg_{user_id}"
-    )
-    quiz_number = json.loads(serialized_question)["last_asked_question"]
-    answer = get_quiz_answer(redis_connection, quiz_number)
+    answer = get_quiz_answer(redis=redis_connection, user_id=user_id, system="tg")
 
     update.message.reply_text(answer)
 
