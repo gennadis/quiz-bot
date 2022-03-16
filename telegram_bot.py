@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 from enum import Enum, auto
@@ -16,8 +15,14 @@ from telegram.ext import (
     CallbackContext,
 )
 
-from questions import get_random_quiz, get_quiz_answer, get_redis_connection
-from questions import REDIS_USERS_HASH_NAME
+from questions import (
+    get_random_quiz,
+    get_quiz_answer,
+    get_redis_connection,
+    create_new_user_in_redis,
+    read_user_from_redis,
+    update_user_in_redis,
+)
 
 
 logger = logging.getLogger(__file__)
@@ -31,6 +36,10 @@ class State(Enum):
 
 def start(update: Update, context: CallbackContext):
     user_name = update.effective_user.first_name
+    user_id = update.effective_user.id
+    redis_connection: redis.Redis = context.bot_data.get("redis")
+
+    create_new_user_in_redis(redis=redis_connection, user_id=user_id, system="tg")
 
     custom_keyboard = [["Новый вопрос", "Сдаться"], ["Мой счет"]]
     markup = telegram.ReplyKeyboardMarkup(custom_keyboard)
@@ -47,10 +56,11 @@ def handle_new_question_request(update: Update, context: CallbackContext):
     redis_connection: redis.Redis = context.bot_data.get("redis")
     quiz_number, deserialized_quiz = get_random_quiz(redis_connection)
 
-    redis_connection.hset(
-        name=REDIS_USERS_HASH_NAME,
-        key=f"user_tg_{user_id}",
-        value=json.dumps({"last_asked_question": quiz_number}),
+    update_user_in_redis(
+        redis=redis_connection,
+        user_id=user_id,
+        system="tg",
+        latest_question=quiz_number,
     )
 
     update.message.reply_text(deserialized_quiz["question"])
@@ -66,11 +76,24 @@ def handle_solution_attempt(update: Update, context: CallbackContext):
     answer = get_quiz_answer(redis=redis_connection, user_id=user_id, system="tg")
 
     if user_text.lower() == answer.lower():
+        update_user_in_redis(
+            redis=redis_connection,
+            user_id=user_id,
+            system="tg",
+            correct_delta=1,
+            total_delta=1,
+        )
         update.message.reply_text(
             "Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»"
         )
         return State.NEW_QUESTION
     else:
+        update_user_in_redis(
+            redis=redis_connection,
+            user_id=user_id,
+            system="tg",
+            total_delta=1,
+        )
         update.message.reply_text("Неправильно… Попробуешь ещё раз?")
         return State.SURRENDER
 
