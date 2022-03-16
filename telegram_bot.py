@@ -121,8 +121,6 @@ def handle_score_request(update: Update, context: CallbackContext):
         f"Правильных ответов: {correct_answers}. Всего ответов: {total_answers}."
     )
 
-    return
-
 
 def help(update: Update, context: CallbackContext):
     """Send a message when the command /help is issued."""
