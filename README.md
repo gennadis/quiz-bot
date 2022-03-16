@@ -10,7 +10,8 @@ Try this telegram bot: `@dvmn_quizz_bot`
 - Send random question to user and check his solution
 - Add your custom QUIZ questions from local `.txt` file
 - Heroku ready!
-- Redis for storing user's `id` and current `question`
+- Redis for storing user's `id`, current `question` and guesses stats
+- Get your quiz stats by pressing `Stats` button
 
 ## Installation
 1. Clone project
