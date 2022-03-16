@@ -109,7 +109,7 @@ def create_new_user_in_redis(redis: redis.Redis, user_id: int, messenger: str) -
 def read_user_from_redis(
     redis: redis.Redis, user_id: int, messenger: str
 ) -> tuple[str, dict]:
-    user_redis_id = USERNAME_TEMPLATE.format(messenger, user_id)
+    user_redis_id = f"user_{messenger}_{user_id}"
     user_stats_serialized = redis.hget(
         name=REDIS_USERS_HASH_NAME,
         key=user_redis_id,
