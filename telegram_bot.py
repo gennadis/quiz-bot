@@ -20,8 +20,8 @@ from questions import (
     get_quiz_answer,
     get_redis_connection,
     create_new_user_in_redis,
-    read_user_from_redis,
     update_user_in_redis,
+    get_user_stats,
 )
 
 
@@ -109,6 +109,21 @@ def handle_surrender(update: Update, context: CallbackContext):
     return State.NEW_QUESTION
 
 
+def handle_score_request(update: Update, context: CallbackContext):
+    user_id = update.effective_user.id
+    redis_connection: redis.Redis = context.bot_data.get("redis")
+
+    correct_answers, total_answers = get_user_stats(
+        redis=redis_connection, user_id=user_id, system="tg"
+    )
+
+    update.message.reply_text(
+        f"Правильных ответов: {correct_answers}. Всего ответов: {total_answers}."
+    )
+
+    return
+
+
 def help(update: Update, context: CallbackContext):
     """Send a message when the command /help is issued."""
     update.message.reply_text("Help!")
@@ -131,15 +146,19 @@ def main(tg_token: str, redis_connection: redis.Redis):
         states={
             State.NEW_QUESTION: [
                 MessageHandler(
-                    Filters.regex(r"Новый вопрос"), handle_new_question_request
+                    Filters.regex(r"Новый вопрос"),
+                    handle_new_question_request,
+                    MessageHandler(Filters.regex(r"Мой счет"), handle_score_request),
                 ),
             ],
             State.SURRENDER: [
                 MessageHandler(Filters.regex(r"Сдаться"), handle_surrender),
+                MessageHandler(Filters.regex(r"Мой счет"), handle_score_request),
                 MessageHandler(Filters.text, handle_solution_attempt),
             ],
             State.SOLUTION_ATTEMPT: [
                 MessageHandler(Filters.regex(r"Сдаться"), handle_surrender),
+                MessageHandler(Filters.regex(r"Мой счет"), handle_score_request),
                 MessageHandler(Filters.text, handle_solution_attempt),
             ],
         },
