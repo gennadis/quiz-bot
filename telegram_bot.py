@@ -116,6 +116,7 @@ def handle_score_request(update: Update, context: CallbackContext):
     correct_answers, total_answers = get_user_stats(
         redis=redis_connection, user_id=user_id, system="tg"
     )
+    print(correct_answers, total_answers)
 
     update.message.reply_text(
         f"Правильных ответов: {correct_answers}. Всего ответов: {total_answers}."
@@ -144,10 +145,9 @@ def main(tg_token: str, redis_connection: redis.Redis):
         states={
             State.NEW_QUESTION: [
                 MessageHandler(
-                    Filters.regex(r"Новый вопрос"),
-                    handle_new_question_request,
-                    MessageHandler(Filters.regex(r"Мой счет"), handle_score_request),
+                    Filters.regex(r"Новый вопрос"), handle_new_question_request
                 ),
+                MessageHandler(Filters.regex(r"Мой счет"), handle_score_request),
             ],
             State.SURRENDER: [
                 MessageHandler(Filters.regex(r"Сдаться"), handle_surrender),
