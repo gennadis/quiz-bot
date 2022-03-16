@@ -1,5 +1,7 @@
 import json
 import os
+import sys
+from platformdirs import user_runtime_dir
 
 import redis
 from dotenv import load_dotenv
@@ -67,10 +69,8 @@ def get_random_quiz(redis: redis.Redis) -> tuple[str, str]:
 
 
 def get_quiz_answer(redis: redis.Redis, user_id: int, system: str) -> str:
-    serialized_question = redis.hget(
-        name=REDIS_USERS_HASH_NAME, key=f"user_{system}_{user_id}"
-    )
-    quiz_number = json.loads(serialized_question)["last_asked_question"]
+    user_redis_id, user_stats = read_user_from_redis(redis, user_id, system)
+    quiz_number = user_stats["last_asked_question"]
     quiz = redis.hget(name=REDIS_ITEMS_HASH_NAME, key=quiz_number)
 
     full_answer = json.loads(quiz)["answer"]
@@ -92,6 +92,55 @@ def format_quiz_for_redis(
     serialized_quiz = json.dumps(formatted_quiz, ensure_ascii=False)
 
     return quiz_number, serialized_quiz
+
+
+def create_new_user_in_redis(redis: redis.Redis, user_id: int, system: str) -> None:
+    redis.hset(
+        name=REDIS_USERS_HASH_NAME,
+        key=f"user_{system}_{user_id}",
+        value=json.dumps(
+            {
+                "last_asked_question": None,
+                "correct_answers": 0,
+                "total_answers": 0,
+            }
+        ),
+    )
+
+
+def read_user_from_redis(
+    redis: redis.Redis, user_id: int, system: str
+) -> tuple[str, dict]:
+    user_redis_id = f"user_{system}_{user_id}"
+    user_stats_serialized = redis.hget(
+        name=REDIS_USERS_HASH_NAME,
+        key=user_redis_id,
+    )
+    user_stats = json.loads(user_stats_serialized)
+
+    return user_redis_id, user_stats
+
+
+def update_user_in_redis(
+    redis: redis.Redis,
+    user_id: int,
+    system: str,
+    latest_question: str = None,
+    correct_delta: int = 0,
+    total_delta: int = 0,
+) -> None:
+    user_redis_id, user_stats = read_user_from_redis(redis, user_id, system)
+
+    if latest_question:
+        user_stats["last_asked_question"] = latest_question
+    user_stats["correct_answers"] += correct_delta
+    user_stats["total_answers"] += total_delta
+
+    redis.hset(
+        name=REDIS_USERS_HASH_NAME,
+        key=user_redis_id,
+        value=json.dumps(user_stats),
+    )
 
 
 def main():
