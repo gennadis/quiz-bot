@@ -1,7 +1,5 @@
 import json
 import os
-import sys
-from platformdirs import user_runtime_dir
 
 import redis
 from dotenv import load_dotenv
@@ -121,7 +119,7 @@ def read_user_from_redis(
     return user_redis_id, user_stats
 
 
-def get_user_stats(redis: redis.Redis, user_id: int, system: str):
+def get_user_stats(redis: redis.Redis, user_id: int, system: str) -> tuple[int, int]:
     user_redis_id, user_stats = read_user_from_redis(redis, user_id, system)
     correct_answers = user_stats["correct_answers"]
     total_answers = user_stats["total_answers"]
