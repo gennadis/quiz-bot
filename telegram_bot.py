@@ -116,7 +116,6 @@ def handle_score_request(update: Update, context: CallbackContext):
     correct_answers, total_answers = get_user_stats(
         redis=redis_connection, user_id=user_id, system="tg"
     )
-    print(correct_answers, total_answers)
 
     update.message.reply_text(
         f"Правильных ответов: {correct_answers}. Всего ответов: {total_answers}."
