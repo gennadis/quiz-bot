@@ -5,7 +5,8 @@ import redis
 from dotenv import load_dotenv
 
 QUIZ_FOLDER = "quiz_questions"
-REDIS_QUIZ_ITEMS_HASH_NAME = "quiz_items"
+REDIS_ITEMS_HASH_NAME = "quiz_items"
+REDIS_USERS_HASH_NAME = "quiz_users"
 
 
 def get_redis_connection(
@@ -56,8 +57,8 @@ def collect_quiz_items(folderpath: str) -> dict:
 
 
 def get_random_quiz(redis: redis.Redis) -> tuple[str, str]:
-    random_hash_field = redis.hrandfield(key=REDIS_QUIZ_ITEMS_HASH_NAME)
-    random_quiz = redis.hget(name=REDIS_QUIZ_ITEMS_HASH_NAME, key=random_hash_field)
+    random_hash_field = redis.hrandfield(key=REDIS_ITEMS_HASH_NAME)
+    random_quiz = redis.hget(name=REDIS_ITEMS_HASH_NAME, key=random_hash_field)
 
     quiz_number = random_hash_field.decode("utf-8")
     deserialized_quiz = json.loads(random_quiz)
@@ -66,7 +67,7 @@ def get_random_quiz(redis: redis.Redis) -> tuple[str, str]:
 
 
 def get_quiz_answer(redis: redis.Redis, quiz_number: str) -> str:
-    quiz = redis.hget(name=REDIS_QUIZ_ITEMS_HASH_NAME, key=quiz_number)
+    quiz = redis.hget(name=REDIS_ITEMS_HASH_NAME, key=quiz_number)
     serialized_quiz = json.loads(quiz)
 
     full_answer = serialized_quiz["answer"]
@@ -105,7 +106,7 @@ def main():
             quiz=quiz, question_number=number
         )
         redis_connection.hset(
-            REDIS_QUIZ_ITEMS_HASH_NAME, key=quiz_number, value=serialized_quiz
+            REDIS_ITEMS_HASH_NAME, key=quiz_number, value=serialized_quiz
         )
 
 

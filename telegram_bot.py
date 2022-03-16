@@ -17,8 +17,8 @@ from telegram.ext import (
 )
 
 from questions import get_random_quiz, get_quiz_answer, get_redis_connection
+from questions import REDIS_USERS_HASH_NAME
 
-REDIS_QUIZ_USERS_HASH_NAME = "quiz_users"
 
 logger = logging.getLogger(__file__)
 
@@ -48,7 +48,7 @@ def handle_new_question_request(update: Update, context: CallbackContext):
     quiz_number, deserialized_quiz = get_random_quiz(redis_connection)
 
     redis_connection.hset(
-        name=REDIS_QUIZ_USERS_HASH_NAME,
+        name=REDIS_USERS_HASH_NAME,
         key=f"user_tg_{user_id}",
         value=json.dumps({"last_asked_question": quiz_number}),
     )
@@ -64,7 +64,7 @@ def handle_solution_attempt(update: Update, context: CallbackContext):
     redis_connection: redis.Redis = context.bot_data.get("redis")
 
     serialized_question = redis_connection.hget(
-        name=REDIS_QUIZ_USERS_HASH_NAME, key=f"user_tg_{user_id}"
+        name=REDIS_USERS_HASH_NAME, key=f"user_tg_{user_id}"
     )
     quiz_number = json.loads(serialized_question)["last_asked_question"]
     answer = get_quiz_answer(redis_connection, quiz_number)
@@ -84,7 +84,7 @@ def handle_surrender(update: Update, context: CallbackContext):
     redis_connection: redis.Redis = context.bot_data.get("redis")
 
     serialized_question = redis_connection.hget(
-        name=REDIS_QUIZ_USERS_HASH_NAME, key=f"user_tg_{user_id}"
+        name=REDIS_USERS_HASH_NAME, key=f"user_tg_{user_id}"
     )
     quiz_number = json.loads(serialized_question)["last_asked_question"]
     answer = get_quiz_answer(redis_connection, quiz_number)

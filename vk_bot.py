@@ -10,8 +10,8 @@ from vk_api.longpoll import VkLongPoll, VkEventType
 from vk_api.utils import get_random_id
 
 from questions import get_random_quiz, get_quiz_answer, get_redis_connection
+from questions import REDIS_USERS_HASH_NAME
 
-REDIS_QUIZ_USERS_HASH_NAME = "quiz_users"
 
 logger = logging.getLogger(__file__)
 
@@ -31,7 +31,7 @@ def handle_new_question_request(
 ) -> None:
     quiz_number, deserialized_quiz = get_random_quiz(redis_connection)
     redis_connection.hset(
-        name=REDIS_QUIZ_USERS_HASH_NAME,
+        name=REDIS_USERS_HASH_NAME,
         key=f"user_vk_{event.user_id}",
         value=json.dumps({"last_asked_question": quiz_number}),
     )
@@ -48,7 +48,7 @@ def handle_solution_attempt(
     event: VkLongPoll, vk: vk_api, redis_connection: redis.Redis
 ) -> None:
     serialized_question = redis_connection.hget(
-        name=REDIS_QUIZ_USERS_HASH_NAME, key=f"user_vk_{event.user_id}"
+        name=REDIS_USERS_HASH_NAME, key=f"user_vk_{event.user_id}"
     )
     quiz_number = json.loads(serialized_question)["last_asked_question"]
     answer = get_quiz_answer(redis_connection, quiz_number)
@@ -74,7 +74,7 @@ def handle_surrender(
     event: VkLongPoll, vk: vk_api, redis_connection: redis.Redis
 ) -> None:
     serialized_question = redis_connection.hget(
-        name=REDIS_QUIZ_USERS_HASH_NAME, key=f"user_vk_{event.user_id}"
+        name=REDIS_USERS_HASH_NAME, key=f"user_vk_{event.user_id}"
     )
     quiz_number = json.loads(serialized_question)["last_asked_question"]
     answer = get_quiz_answer(redis_connection, quiz_number)
