@@ -149,6 +149,8 @@ def main():
                 handle_new_question_request(event, vk, redis_connection)
             elif event.text == "Сдаться":
                 handle_surrender(event, vk, redis_connection)
+            elif event.text == "Мой счет":
+                handle_score_request(event, vk, redis_connection)
             else:
                 handle_solution_attempt(event, vk, redis_connection)
 
