@@ -14,6 +14,7 @@ from questions import (
     get_redis_connection,
     update_user_in_redis,
     get_user_stats,
+    create_new_user_in_redis,
 )
 
 
@@ -37,6 +38,11 @@ def handle_new_question_request(
 ) -> None:
     user_id = event.user_id
     quiz_number, deserialized_quiz = get_random_quiz(redis_connection)
+
+    if not redis_connection.exists(f"user_{VK_MESSENGER}_{user_id}"):
+        create_new_user_in_redis(
+            redis=redis_connection, user_id=user_id, messenger=VK_MESSENGER
+        )
 
     update_user_in_redis(
         redis=redis_connection,
