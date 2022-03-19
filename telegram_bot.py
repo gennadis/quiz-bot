@@ -16,12 +16,11 @@ from telegram.ext import (
 )
 
 from questions import (
-    get_random_quiz,
-    get_quiz_answer,
     get_redis_connection,
+    get_random_quiz,
     create_new_user_in_redis,
+    read_user_from_redis,
     update_user_in_redis,
-    get_user_stats,
 )
 
 TG_MESSENGER = "tg"
@@ -57,16 +56,17 @@ def start(update: Update, context: CallbackContext):
 def handle_new_question_request(update: Update, context: CallbackContext):
     user_id = update.effective_user.id
     redis_connection: redis.Redis = context.bot_data.get("redis")
-    quiz_number, deserialized_quiz = get_random_quiz(redis_connection)
+    question, answer = get_random_quiz(redis=redis_connection)
 
     update_user_in_redis(
         redis=redis_connection,
         user_id=user_id,
         messenger=TG_MESSENGER,
-        latest_question=quiz_number,
+        question=question,
+        answer=answer,
     )
 
-    update.message.reply_text(deserialized_quiz["question"])
+    update.message.reply_text(question)
 
     return State.SOLUTION_ATTEMPT
 
@@ -76,9 +76,10 @@ def handle_solution_attempt(update: Update, context: CallbackContext):
     user_text = update.message.text
     redis_connection: redis.Redis = context.bot_data.get("redis")
 
-    answer = get_quiz_answer(
+    user_redis_id, user_stats = read_user_from_redis(
         redis=redis_connection, user_id=user_id, messenger=TG_MESSENGER
     )
+    answer = user_stats["answer"]
 
     if user_text.lower() == answer.lower():
         update_user_in_redis(
@@ -107,9 +108,10 @@ def handle_surrender(update: Update, context: CallbackContext):
     user_id = update.effective_user.id
     redis_connection: redis.Redis = context.bot_data.get("redis")
 
-    answer = get_quiz_answer(
+    user_redis_id, user_stats = read_user_from_redis(
         redis=redis_connection, user_id=user_id, messenger=TG_MESSENGER
     )
+    answer = user_stats["answer"]
 
     update.message.reply_text(answer)
 
@@ -120,9 +122,11 @@ def handle_score_request(update: Update, context: CallbackContext):
     user_id = update.effective_user.id
     redis_connection: redis.Redis = context.bot_data.get("redis")
 
-    correct_answers, total_answers = get_user_stats(
+    user_redis_id, user_stats = read_user_from_redis(
         redis=redis_connection, user_id=user_id, messenger=TG_MESSENGER
     )
+    correct_answers = user_stats["correct_answers"]
+    total_answers = user_stats["total_answers"]
 
     update.message.reply_text(
         f"Правильных ответов: {correct_answers}. Всего ответов: {total_answers}."
