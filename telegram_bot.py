@@ -138,8 +138,18 @@ def error_handler(update: Update, context: CallbackContext):
     logger.error(msg="Telegram bot encountered an error", exc_info=context.error)
 
 
-def main(tg_token: str, redis_connection: redis.Redis):
+def main():
     logging.basicConfig(level=logging.INFO)
+
+    load_dotenv()
+    tg_token = os.getenv("TG_TOKEN")
+
+    db_address = os.getenv("DB_ADDRESS")
+    db_name = os.getenv("DB_NAME")
+    db_password = os.getenv("DB_PASSWORD")
+    redis_connection = get_redis_connection(
+        db_address=db_address, db_name=db_name, db_password=db_password
+    )
 
     updater = Updater(token=tg_token, use_context=True)
     dispatcher = updater.dispatcher
@@ -177,14 +187,4 @@ def main(tg_token: str, redis_connection: redis.Redis):
 
 
 if __name__ == "__main__":
-    load_dotenv()
-    tg_token = os.getenv("TG_TOKEN")
-
-    db_address = os.getenv("DB_ADDRESS")
-    db_name = os.getenv("DB_NAME")
-    db_password = os.getenv("DB_PASSWORD")
-    redis_connection = get_redis_connection(
-        db_address=db_address, db_name=db_name, db_password=db_password
-    )
-
-    main(tg_token, redis_connection)
+    main()
