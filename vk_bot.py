@@ -82,8 +82,18 @@ def handle_surrender(
     )
 
 
-def main(vk_token: str, redis_connection: redis.Connection):
+def main():
     logging.basicConfig(level=logging.INFO)
+
+    load_dotenv()
+    vk_token = os.getenv("VK_TOKEN")
+
+    db_address = os.getenv("DB_ADDRESS")
+    db_name = os.getenv("DB_NAME")
+    db_password = os.getenv("DB_PASSWORD")
+    redis_connection = get_redis_connection(
+        db_address=db_address, db_name=db_name, db_password=db_password
+    )
 
     vk_session = vk_api.VkApi(token=vk_token)
     vk = vk_session.get_api()
@@ -102,14 +112,4 @@ def main(vk_token: str, redis_connection: redis.Connection):
 
 
 if __name__ == "__main__":
-    load_dotenv()
-    vk_token = os.getenv("VK_TOKEN")
-
-    db_address = os.getenv("DB_ADDRESS")
-    db_name = os.getenv("DB_NAME")
-    db_password = os.getenv("DB_PASSWORD")
-    redis_connection = get_redis_connection(
-        db_address=db_address, db_name=db_name, db_password=db_password
-    )
-
-    main(vk_token, redis_connection)
+    main()
