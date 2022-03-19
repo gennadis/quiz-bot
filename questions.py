@@ -58,39 +58,14 @@ def collect_quiz_items(folderpath: str) -> dict:
 
 
 def get_random_quiz(redis: redis.Redis) -> tuple[str, str]:
-    random_hash_field = redis.hrandfield(key=REDIS_ITEMS_HASH_NAME)
-    random_quiz = redis.hget(name=REDIS_ITEMS_HASH_NAME, key=random_hash_field)
+    random_question = redis.hrandfield(key=REDIS_ITEMS_HASH_NAME)
+    random_answer = redis.hget(name=REDIS_ITEMS_HASH_NAME, key=random_question)
 
-    quiz_number = random_hash_field.decode("utf-8")
-    deserialized_quiz = json.loads(random_quiz)
+    question, answer = list(
+        map(lambda x: x.decode("utf-8"), (random_question, random_answer))
+    )
 
-    return quiz_number, deserialized_quiz
-
-
-def get_quiz_answer(redis: redis.Redis, user_id: int, messenger: str) -> str:
-    user_redis_id, user_stats = read_user_from_redis(redis, user_id, messenger)
-    quiz_number = user_stats["last_asked_question"]
-    quiz = redis.hget(name=REDIS_ITEMS_HASH_NAME, key=quiz_number)
-
-    full_answer = json.loads(quiz)["answer"]
-    short_answer = full_answer.split(".")[0].split("(")[0]
-
-    return short_answer
-
-
-def format_quiz_for_redis(
-    quiz: tuple[str, str], question_number: int
-) -> tuple[str, str]:
-    question, answer = quiz
-    formatted_quiz = {
-        "question": question,
-        "answer": answer,
-    }
-
-    quiz_number = f"question_{question_number}"
-    serialized_quiz = json.dumps(formatted_quiz, ensure_ascii=False)
-
-    return quiz_number, serialized_quiz
+    return question, answer
 
 
 def create_new_user_in_redis(redis: redis.Redis, user_id: int, messenger: str) -> None:
@@ -99,7 +74,8 @@ def create_new_user_in_redis(redis: redis.Redis, user_id: int, messenger: str) -
         key=f"user_{messenger}_{user_id}",
         value=json.dumps(
             {
-                "last_asked_question": None,
+                "question": None,
+                "answer": None,
                 "correct_answers": 0,
                 "total_answers": 0,
             }
@@ -120,26 +96,22 @@ def read_user_from_redis(
     return user_redis_id, user_stats
 
 
-def get_user_stats(redis: redis.Redis, user_id: int, messenger: str) -> tuple[int, int]:
-    user_redis_id, user_stats = read_user_from_redis(redis, user_id, messenger)
-    correct_answers = user_stats["correct_answers"]
-    total_answers = user_stats["total_answers"]
-
-    return correct_answers, total_answers
-
-
 def update_user_in_redis(
     redis: redis.Redis,
     user_id: int,
     messenger: str,
-    latest_question: str = None,
+    question: str = None,
+    answer: str = None,
     correct_delta: int = 0,
     total_delta: int = 0,
 ) -> None:
     user_redis_id, user_stats = read_user_from_redis(redis, user_id, messenger)
 
-    if latest_question:
-        user_stats["last_asked_question"] = latest_question
+    if question and answer:
+        # store short answer only
+        user_stats["question"] = question
+        user_stats["answer"] = answer.split(".")[0].split("(")[0]
+
     user_stats["correct_answers"] += correct_delta
     user_stats["total_answers"] += total_delta
 
@@ -159,20 +131,12 @@ def main():
         db_address=db_address, db_name=db_name, db_password=db_password
     )
 
-    quiz_items = collect_quiz_items(QUIZ_FOLDER)
-    enumerated_quiz_items = enumerate(quiz_items.items(), start=1)
-
-    for number, quiz in tqdm(
-        iterable=enumerated_quiz_items,
+    for question, answer in tqdm(
+        iterable=collect_quiz_items(QUIZ_FOLDER).items(),
         desc="Uploading quiz items",
         unit="items",
     ):
-        quiz_number, serialized_quiz = format_quiz_for_redis(
-            quiz=quiz, question_number=number
-        )
-        redis_connection.hset(
-            REDIS_ITEMS_HASH_NAME, key=quiz_number, value=serialized_quiz
-        )
+        redis_connection.hset(REDIS_ITEMS_HASH_NAME, key=question, value=answer)
 
 
 if __name__ == "__main__":
