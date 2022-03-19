@@ -1,4 +1,3 @@
-import json
 import logging
 import os
 
@@ -9,9 +8,16 @@ from vk_api.keyboard import VkKeyboard, VkKeyboardColor
 from vk_api.longpoll import VkLongPoll, VkEventType
 from vk_api.utils import get_random_id
 
-from questions import get_random_quiz, get_quiz_answer, get_redis_connection
-from questions import REDIS_USERS_HASH_NAME
+from questions import (
+    get_random_quiz,
+    get_quiz_answer,
+    get_redis_connection,
+    update_user_in_redis,
+    get_user_stats,
+)
 
+
+VK_MESSENGER = "vk"
 
 logger = logging.getLogger(__file__)
 
@@ -31,10 +37,12 @@ def handle_new_question_request(
 ) -> None:
     user_id = event.user_id
     quiz_number, deserialized_quiz = get_random_quiz(redis_connection)
-    redis_connection.hset(
-        name=REDIS_USERS_HASH_NAME,
-        key=f"user_vk_{user_id}",
-        value=json.dumps({"last_asked_question": quiz_number}),
+
+    update_user_in_redis(
+        redis=redis_connection,
+        user_id=user_id,
+        messenger=VK_MESSENGER,
+        latest_question=quiz_number,
     )
 
     vk.messages.send(
@@ -49,9 +57,20 @@ def handle_solution_attempt(
     event: VkLongPoll, vk: vk_api, redis_connection: redis.Redis
 ) -> None:
     user_id = event.user_id
-    answer = get_quiz_answer(redis=redis_connection, user_id=user_id, messenger="vk")
+    user_text = event.text
+    answer = get_quiz_answer(
+        redis=redis_connection, user_id=user_id, messenger=VK_MESSENGER
+    )
 
-    if event.text.lower() == answer.lower():
+    if user_text.lower() == answer.lower():
+        update_user_in_redis(
+            redis=redis_connection,
+            user_id=user_id,
+            messenger=VK_MESSENGER,
+            correct_delta=1,
+            total_delta=1,
+        )
+
         vk.messages.send(
             user_id=user_id,
             message="Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»",
@@ -60,6 +79,13 @@ def handle_solution_attempt(
         )
 
     else:
+        update_user_in_redis(
+            redis=redis_connection,
+            user_id=user_id,
+            messenger=VK_MESSENGER,
+            total_delta=1,
+        )
+
         vk.messages.send(
             user_id=event.user_id,
             message="Неправильно… Попробуешь ещё раз?",
@@ -72,11 +98,27 @@ def handle_surrender(
     event: VkLongPoll, vk: vk_api, redis_connection: redis.Redis
 ) -> None:
     user_id = event.user_id
-    answer = get_quiz_answer(redis=redis_connection, user_id=user_id, messenger="vk")
+    answer = get_quiz_answer(
+        redis=redis_connection, user_id=user_id, messenger=VK_MESSENGER
+    )
 
     vk.messages.send(
         user_id=user_id,
         message=answer,
+        keyboard=set_keyboard(),
+        random_id=get_random_id(),
+    )
+
+
+def handle_score_request(event: VkLongPoll, vk: vk_api, redis_connection: redis.Redis):
+    user_id = event.user_id
+    correct_answers, total_answers = get_user_stats(
+        redis=redis_connection, user_id=user_id, messenger=VK_MESSENGER
+    )
+
+    vk.messages.send(
+        user_id=user_id,
+        message=f"Правильных ответов: {correct_answers}. Всего ответов: {total_answers}.",
         keyboard=set_keyboard(),
         random_id=get_random_id(),
     )
