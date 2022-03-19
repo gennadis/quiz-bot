@@ -31,9 +31,14 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-4. Rename `.env.example` to `.env` and fill your secrets in it.  
+4. Upload quiz qusestions-answers pairs to `Redis`:
+```bash
+python questions.py
+```
 
-5. Run bots
+5. Rename `.env.example` to `.env` and fill your secrets in it.  
+
+6. Run bots
 ```bash
 python telegram_bot.py
 python vk_bot.py
