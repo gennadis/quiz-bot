@@ -51,3 +51,5 @@ DB_PASSWORD=your_redis_db_password
 python telegram_bot.py
 python vk_bot.py
 ```
+
+7. Question and answer can be found in `quiz_questions/quiz_items.json` file.
