@@ -3,6 +3,7 @@ import os
 
 import redis
 from dotenv import load_dotenv
+from tqdm import tqdm
 
 QUIZ_FOLDER = "quiz_questions"
 REDIS_ITEMS_HASH_NAME = "quiz_items"
@@ -159,7 +160,13 @@ def main():
     )
 
     quiz_items = collect_quiz_items(QUIZ_FOLDER)
-    for number, quiz in enumerate(quiz_items.items(), start=1):
+    enumerated_quiz_items = enumerate(quiz_items.items(), start=1)
+
+    for number, quiz in tqdm(
+        iterable=enumerated_quiz_items,
+        desc="Uploading quiz items",
+        unit="items",
+    ):
         quiz_number, serialized_quiz = format_quiz_for_redis(
             quiz=quiz, question_number=number
         )

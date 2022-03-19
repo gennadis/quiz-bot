@@ -2,3 +2,4 @@ python-telegram-bot==13.11
 python-dotenv==0.19.2
 redis==4.1.4
 vk-api==11.9.7
+tqdm==4.63.0
