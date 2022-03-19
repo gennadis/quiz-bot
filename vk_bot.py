@@ -12,7 +12,8 @@ from questions import (
     get_redis_connection,
     get_random_quiz,
     create_new_user_in_redis,
-    read_user_from_redis,
+    get_user_answer,
+    get_user_stats,
     update_user_in_redis,
 )
 
@@ -64,10 +65,9 @@ def handle_solution_attempt(
 ) -> None:
     user_id = event.user_id
     user_text = event.text
-    user_redis_id, user_stats = read_user_from_redis(
+    answer = get_user_answer(
         redis=redis_connection, user_id=user_id, messenger=VK_MESSENGER
     )
-    answer = user_stats["answer"]
 
     if user_text.lower() == answer.lower():
         update_user_in_redis(
@@ -77,7 +77,6 @@ def handle_solution_attempt(
             correct_delta=1,
             total_delta=1,
         )
-
         vk.messages.send(
             user_id=user_id,
             message="Правильно! Поздравляю! Для следующего вопроса нажми «Новый вопрос»",
@@ -92,7 +91,6 @@ def handle_solution_attempt(
             messenger=VK_MESSENGER,
             total_delta=1,
         )
-
         vk.messages.send(
             user_id=event.user_id,
             message="Неправильно… Попробуешь ещё раз?",
@@ -105,10 +103,9 @@ def handle_surrender(
     event: VkLongPoll, vk: vk_api, redis_connection: redis.Redis
 ) -> None:
     user_id = event.user_id
-    user_redis_id, user_stats = read_user_from_redis(
+    answer = get_user_answer(
         redis=redis_connection, user_id=user_id, messenger=VK_MESSENGER
     )
-    answer = user_stats["answer"]
 
     vk.messages.send(
         user_id=user_id,
@@ -120,11 +117,9 @@ def handle_surrender(
 
 def handle_score_request(event: VkLongPoll, vk: vk_api, redis_connection: redis.Redis):
     user_id = event.user_id
-    user_redis_id, user_stats = read_user_from_redis(
+    correct_answers, total_answers = get_user_stats(
         redis=redis_connection, user_id=user_id, messenger=VK_MESSENGER
     )
-    correct_answers = user_stats["correct_answers"]
-    total_answers = user_stats["total_answers"]
 
     vk.messages.send(
         user_id=user_id,

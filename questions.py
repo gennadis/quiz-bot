@@ -96,6 +96,21 @@ def read_user_from_redis(
     return user_redis_id, user_stats
 
 
+def get_user_answer(redis: redis.Redis, user_id: int, messenger: str) -> str:
+    user_redis_id, user_stats = read_user_from_redis(redis, user_id, messenger)
+    answer = user_stats["answer"]
+
+    return answer
+
+
+def get_user_stats(redis: redis.Redis, user_id: int, messenger: str) -> tuple[str, str]:
+    user_redis_id, user_stats = read_user_from_redis(redis, user_id, messenger)
+    correct_answers = user_stats["correct_answers"]
+    total_answers = user_stats["total_answers"]
+
+    return correct_answers, total_answers
+
+
 def update_user_in_redis(
     redis: redis.Redis,
     user_id: int,
