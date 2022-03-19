@@ -9,12 +9,11 @@ from vk_api.longpoll import VkLongPoll, VkEventType
 from vk_api.utils import get_random_id
 
 from questions import (
-    get_random_quiz,
-    get_quiz_answer,
     get_redis_connection,
-    update_user_in_redis,
-    get_user_stats,
+    get_random_quiz,
     create_new_user_in_redis,
+    read_user_from_redis,
+    update_user_in_redis,
 )
 
 
@@ -37,7 +36,7 @@ def handle_new_question_request(
     event: VkLongPoll, vk: vk_api, redis_connection: redis.Redis
 ) -> None:
     user_id = event.user_id
-    quiz_number, deserialized_quiz = get_random_quiz(redis_connection)
+    question, answer = get_random_quiz(redis_connection)
 
     if not redis_connection.exists(f"user_{VK_MESSENGER}_{user_id}"):
         create_new_user_in_redis(
@@ -48,12 +47,13 @@ def handle_new_question_request(
         redis=redis_connection,
         user_id=user_id,
         messenger=VK_MESSENGER,
-        latest_question=quiz_number,
+        question=question,
+        answer=answer,
     )
 
     vk.messages.send(
         user_id=user_id,
-        message=deserialized_quiz["question"],
+        message=question,
         keyboard=set_keyboard(),
         random_id=get_random_id(),
     )
@@ -64,9 +64,10 @@ def handle_solution_attempt(
 ) -> None:
     user_id = event.user_id
     user_text = event.text
-    answer = get_quiz_answer(
+    user_redis_id, user_stats = read_user_from_redis(
         redis=redis_connection, user_id=user_id, messenger=VK_MESSENGER
     )
+    answer = user_stats["answer"]
 
     if user_text.lower() == answer.lower():
         update_user_in_redis(
@@ -104,9 +105,10 @@ def handle_surrender(
     event: VkLongPoll, vk: vk_api, redis_connection: redis.Redis
 ) -> None:
     user_id = event.user_id
-    answer = get_quiz_answer(
+    user_redis_id, user_stats = read_user_from_redis(
         redis=redis_connection, user_id=user_id, messenger=VK_MESSENGER
     )
+    answer = user_stats["answer"]
 
     vk.messages.send(
         user_id=user_id,
@@ -118,9 +120,11 @@ def handle_surrender(
 
 def handle_score_request(event: VkLongPoll, vk: vk_api, redis_connection: redis.Redis):
     user_id = event.user_id
-    correct_answers, total_answers = get_user_stats(
+    user_redis_id, user_stats = read_user_from_redis(
         redis=redis_connection, user_id=user_id, messenger=VK_MESSENGER
     )
+    correct_answers = user_stats["correct_answers"]
+    total_answers = user_stats["total_answers"]
 
     vk.messages.send(
         user_id=user_id,
