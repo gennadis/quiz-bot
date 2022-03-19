@@ -37,6 +37,14 @@ python questions.py
 ```
 
 5. Rename `.env.example` to `.env` and fill your secrets in it.  
+```bash
+TG_TOKEN=your_telegram_bot_token
+VK_TOKEN=your_vk_bot_token
+
+DB_ADDRESS=redis_cloud_db_uri:PORT
+DB_NAME=your_redis_db_name (`0` by default)
+DB_PASSWORD=your_redis_db_password
+```
 
 6. Run bots
 ```bash
