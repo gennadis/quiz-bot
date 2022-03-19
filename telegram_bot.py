@@ -129,11 +129,6 @@ def handle_score_request(update: Update, context: CallbackContext):
     )
 
 
-def help(update: Update, context: CallbackContext):
-    """Send a message when the command /help is issued."""
-    update.message.reply_text("Help!")
-
-
 def error_handler(update: Update, context: CallbackContext):
     logger.error(msg="Telegram bot encountered an error", exc_info=context.error)
 
